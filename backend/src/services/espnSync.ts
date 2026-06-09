@@ -1,4 +1,4 @@
-import { eq, and, or, sql } from 'drizzle-orm';
+import { eq, and, or, sql, isNull, isNotNull } from 'drizzle-orm';
 import db from '../db/index';
 import { teams, players, matches, matchEvents, scraperLogs } from '../db/schema';
 import { sendNotification } from './pushService';
@@ -401,6 +401,204 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
   const durationMs = Date.now() - start;
   const status = errors.length === 0 ? 'success' : updated > 0 ? 'partial' : 'error';
   await writeLog('scores', status, updated, errors.slice(0, 5).join('; ') || `${updated} jogos actualizados`, durationMs);
+  return { updated, errors };
+}
+
+export async function syncUpcomingIds(): Promise<{ filled: number; errors: string[] }> {
+  const errors: string[] = [];
+  let filled = 0;
+
+  try {
+    const scheduledMatches = await db.select({
+      id: matches.id,
+      homeTeamId: matches.homeTeamId,
+      awayTeamId: matches.awayTeamId,
+      date: matches.date,
+      espnEventId: matches.espnEventId,
+    }).from(matches)
+      .where(and(eq(matches.status, 'Scheduled'), isNull(matches.espnEventId)));
+
+    if (scheduledMatches.length === 0) return { filled: 0, errors: [] };
+
+    const allTeams = await db.select().from(teams);
+    const byEspnId = Object.fromEntries(allTeams.filter(t => t.espnId).map(t => [String(t.espnId), t]));
+    const byId = Object.fromEntries(allTeams.map(t => [t.id, t]));
+
+    // Fetch ESPN by unique dates (up to 14 days out)
+    const uniqueDates = [...new Set(scheduledMatches.flatMap(m => espnDateRange(m.date)))].slice(0, 20);
+
+    for (const dateStr of uniqueDates) {
+      try {
+        const res = await fetch(`${ESPN_BASE}/scoreboard?dates=${dateStr}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) continue;
+
+        const data = await res.json() as {
+          events?: Array<{
+            id: string;
+            competitions: Array<{
+              competitors: Array<{ homeAway: string; team: { id: string } }>;
+            }>;
+          }>;
+        };
+
+        for (const event of data.events || []) {
+          const comp = event.competitions[0];
+          const homeComp = comp.competitors.find(c => c.homeAway === 'home');
+          const awayComp = comp.competitors.find(c => c.homeAway === 'away');
+          if (!homeComp || !awayComp) continue;
+
+          const homeTeam = byEspnId[homeComp.team.id];
+          const awayTeam = byEspnId[awayComp.team.id];
+          if (!homeTeam || !awayTeam) continue;
+
+          const match = scheduledMatches.find(m =>
+            m.homeTeamId === homeTeam.id && m.awayTeamId === awayTeam.id && !m.espnEventId
+          );
+          if (match) {
+            await db.update(matches).set({ espnEventId: event.id }).where(eq(matches.id, match.id));
+            match.espnEventId = event.id;
+            filled++;
+            console.log(`[IDSync] ${byId[match.homeTeamId]?.code ?? '?'} vs ${byId[match.awayTeamId]?.code ?? '?'} → ESPN ${event.id}`);
+          }
+        }
+
+        await delay(300);
+      } catch (e: any) {
+        errors.push(`Date ${dateStr}: ${e.message}`);
+      }
+    }
+  } catch (err: any) {
+    errors.push(err.message);
+  }
+
+  return { filled, errors };
+}
+
+// Devolve o dia e o dia anterior de uma data (YYYYMMDD).
+// Usado para cobrir jogos de madrugada em Portugal que na ESPN aparecem no dia anterior (UTC).
+function espnDateRange(dateStr: string): [string, string] {
+  const day = dateStr.split('T')[0].replace(/-/g, '');
+  const d = new Date(dateStr.split('T')[0] + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() - 1);
+  const prev = d.toISOString().slice(0, 10).replace(/-/g, '');
+  return [prev, day];
+}
+
+function normalizeVenue(v: string): string {
+  return v.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function venueMatches(ourVenue: string, espnVenue: string): boolean {
+  const a = normalizeVenue(ourVenue);
+  const b = normalizeVenue(espnVenue);
+  return a.includes(b) || b.includes(a);
+}
+
+export async function syncKnockoutTeams(): Promise<{ updated: number; errors: string[] }> {
+  const errors: string[] = [];
+  let updated = 0;
+
+  try {
+    // Jogos de knockout que ainda têm labels (TBD)
+    const labelMatches = await db.select({
+      id: matches.id,
+      homeLabel: matches.homeLabel,
+      awayLabel: matches.awayLabel,
+      date: matches.date,
+      venue: matches.venue,
+      espnEventId: matches.espnEventId,
+    }).from(matches)
+      .where(or(isNotNull(matches.homeLabel), isNotNull(matches.awayLabel)));
+
+    if (labelMatches.length === 0) return { updated: 0, errors: [] };
+
+    const allTeams = await db.select().from(teams);
+    const byEspnId = Object.fromEntries(allTeams.filter(t => t.espnId).map(t => [String(t.espnId), t]));
+
+    const remaining = [...labelMatches];
+
+    // Fase 1: para jogos sem espnEventId, tentar encontrar por venue + dia
+    const withoutId = remaining.filter(m => !m.espnEventId);
+    const uniqueDates = [...new Set(withoutId.flatMap(m => espnDateRange(m.date)))].slice(0, 20);
+
+    for (const dateStr of uniqueDates) {
+      try {
+        const res = await fetch(`${ESPN_BASE}/scoreboard?dates=${dateStr}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) continue;
+
+        const data = await res.json() as {
+          events?: Array<{
+            id: string;
+            competitions: Array<{
+              venue?: { fullName?: string };
+              competitors: Array<{ homeAway: string; team: { id: string } }>;
+            }>;
+          }>;
+        };
+
+        for (const event of data.events || []) {
+          const comp = event.competitions[0];
+          const espnVenueName = comp.venue?.fullName ?? '';
+
+          const idx = withoutId.findIndex(m =>
+            m.venue && espnVenueName && venueMatches(m.venue, espnVenueName)
+          );
+          if (idx === -1) continue;
+
+          const match = withoutId[idx];
+          await db.update(matches).set({ espnEventId: event.id }).where(eq(matches.id, match.id));
+          match.espnEventId = event.id;
+          // Reflectir também no array remaining
+          const ri = remaining.findIndex(m => m.id === match.id);
+          if (ri !== -1) remaining[ri].espnEventId = event.id;
+          withoutId.splice(idx, 1);
+          console.log(`[KnockoutSync] Jogo ${match.id} → ESPN ID ${event.id} (venue match)`);
+        }
+
+        await delay(300);
+      } catch (e: any) {
+        errors.push(`Date ${dateStr}: ${e.message}`);
+      }
+    }
+
+    // Fase 2: para todos os que já têm espnEventId, verificar se a ESPN já tem equipas reais
+    const withId = remaining.filter(m => m.espnEventId);
+
+    for (const match of withId) {
+      try {
+        const res = await fetch(`${ESPN_BASE}/summary?event=${match.espnEventId}`, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) continue;
+
+        const data = await res.json() as {
+          boxscore?: {
+            teams?: Array<{ homeAway: string; team: { id: string } }>;
+          };
+        };
+
+        const competitors = data.boxscore?.teams ?? [];
+        const homeComp = competitors.find(c => c.homeAway === 'home');
+        const awayComp = competitors.find(c => c.homeAway === 'away');
+        if (!homeComp || !awayComp) continue;
+
+        const homeTeam = byEspnId[homeComp.team.id];
+        const awayTeam = byEspnId[awayComp.team.id];
+        if (!homeTeam || !awayTeam || homeTeam.code === 'TBD' || awayTeam.code === 'TBD') continue;
+
+        await db.update(matches)
+          .set({ homeTeamId: homeTeam.id, awayTeamId: awayTeam.id, homeLabel: null, awayLabel: null })
+          .where(eq(matches.id, match.id));
+
+        updated++;
+        console.log(`[KnockoutSync] Jogo ${match.id}: ${homeTeam.code} vs ${awayTeam.code} preenchido`);
+        await delay(200);
+      } catch (e: any) {
+        errors.push(`Event ${match.espnEventId}: ${e.message}`);
+      }
+    }
+  } catch (err: any) {
+    errors.push(err.message);
+  }
+
   return { updated, errors };
 }
 

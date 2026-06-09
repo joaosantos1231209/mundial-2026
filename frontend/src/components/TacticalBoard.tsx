@@ -213,8 +213,8 @@ export default function TacticalBoard({ players, matchId, teamId, formation, ini
               <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-xs shadow-lg ${posColors[pp.player.position] || 'bg-gray-500 border-gray-300 text-white'}`}>
                 {pp.player.shirtNumber ?? pp.player.position[0]}
               </div>
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-white text-[10px] font-bold whitespace-nowrap drop-shadow-md bg-black/60 px-1 rounded pointer-events-none">
-                {pp.player.name.split(' ').pop()}
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-white text-[10px] font-bold drop-shadow-md bg-black/60 px-1 rounded pointer-events-none max-w-[80px] truncate text-center">
+                {pp.player.name}
               </div>
               {/* Captain / VC badges */}
               <div className="absolute -top-1 -right-1 flex gap-0.5 pointer-events-none">
@@ -251,7 +251,7 @@ export default function TacticalBoard({ players, matchId, teamId, formation, ini
                       p.position === 'MID' ? 'bg-green-500/30 text-green-300' :
                       'bg-red-500/30 text-red-300'
                     }`}>{p.position[0]}</span>
-                    <span className="text-white/70 text-[11px] truncate flex-1">{p.name.split(' ').pop()}</span>
+                    <span className="text-white/70 text-[11px] truncate flex-1">{p.name}</span>
                     {p.isCaptain ? <span className="text-wc-gold text-[10px] font-bold">C</span> : null}
                     {p.isViceCaptain ? <span className="text-amber-500 text-[10px] font-bold">V</span> : null}
                   </div>

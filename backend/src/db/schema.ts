@@ -46,6 +46,8 @@ export const matches = pgTable('matches', {
   groupName: text('group_name'),
   homeTeamId: integer('home_team_id').notNull().references(() => teams.id),
   awayTeamId: integer('away_team_id').notNull().references(() => teams.id),
+  homeLabel: text('home_label'),
+  awayLabel: text('away_label'),
   homeScore: integer('home_score'),
   awayScore: integer('away_score'),
   status: text('status').notNull().default('Scheduled'),

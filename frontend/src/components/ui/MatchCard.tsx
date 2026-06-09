@@ -1,13 +1,10 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Match } from '../../types';
-import QuickEditModal from '../QuickEditModal';
+import type { Match, Team } from '../../types';
 
 interface Props {
   match: Match;
   compact?: boolean;
   showDate?: boolean;
-  onUpdated?: () => void;
 }
 
 const statusColors = {
@@ -34,19 +31,57 @@ function formatShortDate(dateStr: string): string {
   return `${weekday.replace('.', '')} ${day}`;
 }
 
-export default function MatchCard({ match, compact, showDate, onUpdated }: Props) {
-  const { homeTeam, awayTeam, homeScore, awayScore, status, date, stage, groupName, venue } = match;
-  const [showEdit, setShowEdit] = useState(false);
+function TeamSlot({ team, label, align, compact, winner }: {
+  team?: Team;
+  label?: string | null;
+  align: 'left' | 'right';
+  compact?: boolean;
+  winner?: boolean;
+}) {
+  const displayName = label ?? team?.name ?? '?';
+  const isPlaceholder = !!label || !team?.flagUrl;
+  const textClass = `font-semibold ${compact ? 'text-sm' : 'text-base'} ${winner ? 'text-wc-gold' : 'text-white'} ${isPlaceholder ? 'text-white/60 italic' : ''}`;
+
+  const flag = isPlaceholder
+    ? <div className="w-8 h-5 bg-wc-blue/80 rounded-sm flex items-center justify-center text-white/20 text-[9px] font-bold flex-shrink-0">?</div>
+    : <img src={team!.flagUrl} alt={team!.code} className="w-8 h-5 object-cover rounded-sm shadow flex-shrink-0" />;
+
+  if (align === 'right') {
+    return (
+      <div className="flex items-center gap-2 flex-1 justify-end">
+        <span className={`text-right ${textClass}`}>{displayName}</span>
+        {flag}
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 flex-1">
+      {flag}
+      <span className={textClass}>{displayName}</span>
+    </div>
+  );
+}
+
+export default function MatchCard({ match, compact, showDate }: Props) {
+  const { homeTeam, awayTeam, homeLabel, awayLabel, homeScore, awayScore, status, date, stage, groupName, venue } = match;
   const time = formatTime(date);
-  if (!homeTeam || !awayTeam) return null;
 
   const isFinished = status === 'Finished';
   const isLive = status === 'Live';
   const isScheduled = status === 'Scheduled';
 
+  const STAGE_LABELS: Record<string, string> = {
+    'Group': `Grupo ${groupName}`,
+    'Round of 32': 'Fase dos 32',
+    'Round of 16': 'Oitavos de Final',
+    'Quarter-Final': 'Quartos de Final',
+    'Semi-Final': 'Meias-Finais',
+    'Third Place': '3º Lugar',
+    'Final': 'Final',
+  };
+
   return (
-    <>
-      <div className="relative group/card">
+    <div className="relative">
         <Link to={`/matches/${match.id}`} className="block">
           <div className="rounded-xl p-4 transition-all duration-200 hover:shadow-glow-gold border overflow-hidden"
             style={{
@@ -59,24 +94,17 @@ export default function MatchCard({ match, compact, showDate, onUpdated }: Props
             {/* Stage + Status */}
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs text-white/40 font-medium uppercase tracking-wider">
-                {stage === 'Group' ? `Grupo ${groupName}` : stage}
+                {STAGE_LABELS[stage] ?? stage}
               </span>
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColors[status]}`}>
-                  {statusLabels[status]}
-                </span>
-              </div>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColors[status]}`}>
+                {statusLabels[status]}
+              </span>
             </div>
 
             {/* Teams & Score */}
             <div className="flex items-center justify-between gap-4">
-              {/* Home Team */}
-              <div className="flex items-center gap-2 flex-1 justify-end">
-                <span className={`font-semibold text-right ${compact ? 'text-sm' : 'text-base'} ${isFinished && homeScore! > awayScore! ? 'text-wc-gold' : 'text-white'}`}>
-                  {homeTeam.name}
-                </span>
-                <img src={homeTeam.flagUrl} alt={homeTeam.code} className="w-8 h-5 object-cover rounded-sm shadow" />
-              </div>
+              <TeamSlot team={homeTeam} label={homeLabel} align="right" compact={compact}
+                winner={isFinished && (homeScore ?? 0) > (awayScore ?? 0)} />
 
               {/* Score / Time */}
               <div className="flex items-center gap-2 shrink-0">
@@ -104,13 +132,8 @@ export default function MatchCard({ match, compact, showDate, onUpdated }: Props
                 )}
               </div>
 
-              {/* Away Team */}
-              <div className="flex items-center gap-2 flex-1">
-                <img src={awayTeam.flagUrl} alt={awayTeam.code} className="w-8 h-5 object-cover rounded-sm shadow" />
-                <span className={`font-semibold ${compact ? 'text-sm' : 'text-base'} ${isFinished && awayScore! > homeScore! ? 'text-wc-gold' : 'text-white'}`}>
-                  {awayTeam.name}
-                </span>
-              </div>
+              <TeamSlot team={awayTeam} label={awayLabel} align="left" compact={compact}
+                winner={isFinished && (awayScore ?? 0) > (homeScore ?? 0)} />
             </div>
 
             {/* Venue */}
@@ -121,24 +144,6 @@ export default function MatchCard({ match, compact, showDate, onUpdated }: Props
             )}
           </div>
         </Link>
-
-        {/* Quick edit button — visible on hover */}
-        <button
-          onClick={e => { e.preventDefault(); e.stopPropagation(); setShowEdit(true); }}
-          className="absolute top-3 right-3 opacity-0 group-hover/card:opacity-100 transition-opacity bg-wc-blue border border-wc-gold/30 text-wc-gold hover:bg-wc-gold hover:text-wc-dark text-xs px-2 py-1 rounded-lg font-bold z-10"
-          title="Edição rápida"
-        >
-          ✎
-        </button>
       </div>
-
-      {showEdit && (
-        <QuickEditModal
-          matchId={match.id}
-          onClose={() => setShowEdit(false)}
-          onSaved={() => { onUpdated?.(); }}
-        />
-      )}
-    </>
   );
 }

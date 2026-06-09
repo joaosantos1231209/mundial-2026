@@ -11,7 +11,7 @@ import simulateRouter from './routes/simulate';
 import healthRouter from './routes/health';
 import pushRouter from './routes/push';
 import { sendNotification } from './services/pushService';
-import { syncLiveScores } from './services/espnSync';
+import { syncLiveScores, syncUpcomingIds, syncKnockoutTeams } from './services/espnSync';
 import db from './db/index';
 import { matches } from './db/schema';
 
@@ -56,43 +56,61 @@ app.listen(Number(PORT), '0.0.0.0', () => {
 
 async function startAutoSync() {
   let timer: ReturnType<typeof setTimeout>;
+  let lastIdSync = 0;
 
   async function tick() {
     const now = new Date();
+    const nowMs = now.getTime();
 
-    // Verifica se há jogos ao vivo ou a começar nos próximos 15 minutos
     const allMatches = await db.select({ status: matches.status, date: matches.date })
       .from(matches)
       .where(or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')));
 
     const hasLive = allMatches.some(m => m.status === 'Live');
     const soonMatches = allMatches.filter(m => {
-      const diff = new Date(m.date).getTime() - now.getTime();
+      const diff = new Date(m.date).getTime() - nowMs;
       return m.status === 'Scheduled' && diff >= 0 && diff <= 15 * 60 * 1000;
     });
     const hasSoon = soonMatches.length > 0;
 
     // Send "starting soon" push for matches 10 min away (only once, when window 8–12 min)
     for (const m of soonMatches) {
-      const diff = new Date(m.date).getTime() - now.getTime();
+      const diff = new Date(m.date).getTime() - nowMs;
       if (diff >= 8 * 60 * 1000 && diff <= 12 * 60 * 1000) {
         sendNotification('⏰ Jogo em 10 minutos!', `${m.date.substring(11, 16)} — A começar em breve`, '/matches').catch(() => {});
       }
     }
 
-    const interval = (hasLive || hasSoon) ? 30_000 : 5 * 60_000;
-
+    // Live scores sync (only when there's activity)
     if (hasLive || hasSoon) {
       try {
         const result = await syncLiveScores();
-        if (result.updated > 0) {
-          console.log(`[AutoSync] ${result.updated} jogo(s) actualizados`);
-        }
+        if (result.updated > 0) console.log(`[AutoSync] ${result.updated} jogo(s) actualizados`);
       } catch (err) {
-        console.error('[AutoSync] Erro:', err);
+        console.error('[AutoSync] Erro scores:', err);
       }
     }
 
+    // ESPN ID sync + knockout team propagation — every 15 minutes
+    if (nowMs - lastIdSync >= 15 * 60_000) {
+      try {
+        const idResult = await syncUpcomingIds();
+        if (idResult.filled > 0) console.log(`[AutoSync] ${idResult.filled} ESPN ID(s) preenchidos`);
+        if (idResult.errors.length > 0) console.warn('[AutoSync] ID sync erros:', idResult.errors);
+      } catch (err) {
+        console.error('[AutoSync] Erro IDs:', err);
+      }
+      try {
+        const koResult = await syncKnockoutTeams();
+        if (koResult.updated > 0) console.log(`[AutoSync] ${koResult.updated} jogo(s) de knockout preenchidos`);
+        if (koResult.errors.length > 0) console.warn('[AutoSync] Knockout sync erros:', koResult.errors);
+      } catch (err) {
+        console.error('[AutoSync] Erro knockout teams:', err);
+      }
+      lastIdSync = nowMs;
+    }
+
+    const interval = (hasLive || hasSoon) ? 30_000 : 5 * 60_000;
     timer = setTimeout(tick, interval);
   }
 

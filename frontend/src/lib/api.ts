@@ -72,6 +72,9 @@ export const downloadBackup = () => window.open(`${BASE}/health/backup`, '_blank
 export const syncScores = () => request<{ updated: number; errors: string[] }>('/sync/scores', { method: 'POST' });
 export const syncMatchStats = (matchId: number) => request<{ events: number; error?: string }>(`/sync/stats/${matchId}`, { method: 'POST' });
 export const generateKnockout = () => request<{ success: boolean; created: number; message: string }>('/matches/generate-knockout', { method: 'POST' });
+export const seedGroupStage = (force = false) => request<{ success: boolean; created: number; message: string; canForce?: boolean }>(`/matches/seed-group-stage${force ? '?force=true' : ''}`, { method: 'POST' });
+export const seedRoundOf32 = () => request<{ success: boolean; created: number; message: string }>('/matches/seed-round-of-32', { method: 'POST' });
+export const seedKnockoutStages = () => request<{ success: boolean; created: number; message: string }>('/matches/seed-knockout-stages', { method: 'POST' });
 
 // Push notifications
 export const getVapidPublicKey = () => request<{ publicKey: string }>('/push/vapid-public-key');

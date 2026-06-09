@@ -44,6 +44,8 @@ export interface Match {
   groupName: string | null;
   homeTeamId: number;
   awayTeamId: number;
+  homeLabel: string | null;
+  awayLabel: string | null;
   homeScore: number | null;
   awayScore: number | null;
   status: 'Scheduled' | 'Live' | 'Finished';

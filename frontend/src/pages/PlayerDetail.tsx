@@ -69,9 +69,8 @@ export default function PlayerDetail() {
             <div className={`w-20 h-20 rounded-xl border-2 flex items-center justify-center text-2xl font-extrabold ${posColors[player.position]}`}>
               {player.shirtNumber ?? '?'}
             </div>
-            {player.isCaptain ? (
-              <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-wc-gold text-wc-dark text-xs font-extrabold flex items-center justify-center shadow-lg" title="Capitão">C</span>
-            ) : null}
+            {!!player.isCaptain && <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-wc-gold text-wc-dark text-xs font-extrabold flex items-center justify-center shadow-lg">C</span>}
+            {!!player.isViceCaptain && !player.isCaptain && <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-amber-600 text-white text-[10px] font-extrabold flex items-center justify-center shadow-lg">VC</span>}
           </div>
 
           <div className="flex-1">
@@ -89,12 +88,12 @@ export default function PlayerDetail() {
             )}
 
             {/* Role badges */}
-            <div className="flex gap-2 mt-3 flex-wrap">
-              {player.isCaptain ? <span className="px-2 py-1 rounded-full bg-wc-gold/20 text-wc-gold text-xs font-bold border border-wc-gold/30">Capitão</span> : null}
-              {player.isPenaltyTaker ? <span className="px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30">Marcador PK</span> : null}
-              {player.isFreekickTaker ? <span className="px-2 py-1 rounded-full bg-orange-500/20 text-orange-300 text-xs font-bold border border-orange-500/30">Marcador FK</span> : null}
-              {player.isCornerKicker ? <span className="px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-bold border border-cyan-500/30">Cobrador CK</span> : null}
-            </div>
+            {(!!player.isCaptain || !!player.isViceCaptain) && (
+              <div className="flex gap-2 mt-3">
+                {!!player.isCaptain && <span className="px-2 py-1 rounded-full bg-wc-gold/20 text-wc-gold text-xs font-bold border border-wc-gold/30">Capitão</span>}
+                {!!player.isViceCaptain && <span className="px-2 py-1 rounded-full bg-amber-600/20 text-amber-400 text-xs font-bold border border-amber-600/30">Vice-Capitão</span>}
+              </div>
+            )}
           </div>
         </div>
       </div>

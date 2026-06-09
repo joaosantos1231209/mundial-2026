@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getMatch, updateMatchResult, addMatchEvent, deleteMatchEvent, getPlayers } from '../lib/api';
+import { getMatch, updateMatchResult, updateMatchSchedule, addMatchEvent, deleteMatchEvent, getPlayers } from '../lib/api';
 import type { Match, Player } from '../types';
 
 interface Props {
@@ -19,6 +19,9 @@ export default function QuickEditModal({ matchId, onClose, onSaved }: Props) {
   const [homeScore, setHomeScore] = useState(0);
   const [awayScore, setAwayScore] = useState(0);
   const [status, setStatus] = useState<string>('Scheduled');
+  const [dateValue, setDateValue] = useState('');
+  const [timeValue, setTimeValue] = useState('');
+  const [savingDate, setSavingDate] = useState(false);
   const [newEvent, setNewEvent] = useState({ teamId: '', playerId: '', eventType: 'Goal', minute: '' });
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +31,10 @@ export default function QuickEditModal({ matchId, onClose, onSaved }: Props) {
     setHomeScore(m.homeScore ?? 0);
     setAwayScore(m.awayScore ?? 0);
     setStatus(m.status);
+    if (m.date.includes('T')) {
+      setDateValue(m.date.split('T')[0]);
+      setTimeValue(m.date.split('T')[1].substring(0, 5));
+    }
     if (m.homeTeam) {
       const hp = await getPlayers(m.homeTeamId);
       setHomePlayers(hp);
@@ -47,6 +54,16 @@ export default function QuickEditModal({ matchId, onClose, onSaved }: Props) {
       onSaved();
       await load();
     } finally { setSaving(false); }
+  };
+
+  const handleSaveDate = async () => {
+    if (!dateValue || !timeValue) return;
+    setSavingDate(true);
+    try {
+      await updateMatchSchedule(matchId, `${dateValue}T${timeValue}`);
+      onSaved();
+      await load();
+    } finally { setSavingDate(false); }
   };
 
   const handleAddEvent = async () => {
@@ -144,6 +161,33 @@ export default function QuickEditModal({ matchId, onClose, onSaved }: Props) {
             >
               {saving ? 'A guardar...' : 'Guardar Resultado'}
             </button>
+          </div>
+
+          {/* Date & Time */}
+          <div className="bg-wc-blue/10 rounded-xl p-4">
+            <h3 className="text-white/70 text-xs uppercase tracking-wider font-bold mb-3">Data e Hora</h3>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={dateValue}
+                onChange={e => setDateValue(e.target.value)}
+                className="flex-1 bg-wc-blue border border-wc-blue/50 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-wc-gold"
+              />
+              <input
+                type="time"
+                value={timeValue}
+                onChange={e => setTimeValue(e.target.value)}
+                className="w-28 bg-wc-blue border border-wc-blue/50 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-wc-gold"
+              />
+              <button
+                onClick={handleSaveDate}
+                disabled={savingDate || !dateValue || !timeValue}
+                className="bg-wc-blue border border-wc-gold/40 text-wc-gold font-bold px-4 py-2 rounded-lg hover:bg-wc-gold hover:text-wc-dark disabled:opacity-50 transition-colors text-sm whitespace-nowrap"
+              >
+                {savingDate ? '...' : 'Guardar'}
+              </button>
+            </div>
+            <p className="text-white/30 text-xs mt-1.5">Hora de Portugal (WEST)</p>
           </div>
 
           {/* Add Event */}

@@ -18,6 +18,7 @@ export default function Teams() {
   if (loading) return <div className="flex justify-center py-20 text-wc-gold animate-pulse text-xl">A carregar...</div>;
 
   const filtered = teams.filter(t => {
+    if (t.code === 'TBD') return false;
     if (filterGroup && t.group !== filterGroup) return false;
     if (search && !t.name.toLowerCase().includes(search.toLowerCase()) && !t.code.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -32,7 +33,7 @@ export default function Teams() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-extrabold text-white">Equipas</h1>
-        <span className="text-white/40 text-sm">{teams.length} equipas qualificadas</span>
+        <span className="text-white/40 text-sm">{teams.filter(t => t.code !== 'TBD').length} equipas qualificadas</span>
       </div>
 
       {/* Filters */}

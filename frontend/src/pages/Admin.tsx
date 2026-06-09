@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ScraperHealthMonitor from '../components/ScraperHealthMonitor';
-import { downloadBackup, generateKnockout } from '../lib/api';
+import { downloadBackup, generateKnockout, seedGroupStage, seedRoundOf32, seedKnockoutStages } from '../lib/api';
 
 interface SyncState {
   loading: boolean;
@@ -71,6 +71,9 @@ function AdminGate({ children }: { children: React.ReactNode }) {
 export default function Admin() {
   const [squadsState, setSquadsState] = useState<SyncState>(initial);
   const [scoresState, setScoresState] = useState<SyncState>(initial);
+  const [seedState, setSeedState] = useState<SyncState>(initial);
+  const [r32SeedState, setR32SeedState] = useState<SyncState>(initial);
+  const [koSeedState, setKoSeedState] = useState<SyncState>(initial);
   const [knockoutState, setKnockoutState] = useState<SyncState>(initial);
 
   const syncSquads = async () => {
@@ -188,6 +191,121 @@ export default function Admin() {
         )}
         {!scoresState.loading && scoresState.error && !scoresState.result && (
           <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-300 text-sm">{scoresState.error}</div>
+        )}
+      </div>
+
+      {/* Seed Group Stage */}
+      <div className="bg-wc-navy border border-wc-blue rounded-xl p-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">📅 Inicializar Calendário</h2>
+          <p className="text-white/50 text-sm mt-1">
+            Insere os 72 jogos oficiais da fase de grupos (FIFA WC 2026).<br />
+            Só funciona se não existirem jogos na base de dados. Horas em hora de Portugal.
+          </p>
+        </div>
+        <button
+          onClick={async () => {
+            setSeedState({ loading: true, result: null, error: null, log: [] });
+            try {
+              const data = await seedGroupStage();
+              setSeedState({ loading: false, result: `✅ ${data.message}`, error: null, log: [] });
+            } catch (e: any) {
+              const msg = e.message ?? '';
+              setSeedState({ loading: false, result: null, error: `❌ ${msg}`, log: msg.includes('Já existem') ? ['canForce'] : [] });
+            }
+          }}
+          disabled={seedState.loading}
+          className="w-full bg-wc-blue border border-wc-gold/30 text-wc-gold font-bold py-3 rounded-lg hover:bg-wc-gold hover:text-wc-dark disabled:opacity-50 disabled:cursor-wait transition-colors text-lg"
+        >
+          {seedState.loading ? '⏳ A inserir...' : '📅 Inserir 72 Jogos da Fase de Grupos'}
+        </button>
+        {seedState.result && (
+          <div className="mt-3 bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-300 text-sm">{seedState.result}</div>
+        )}
+        {seedState.error && (
+          <div className="mt-3 space-y-2">
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-300 text-sm">{seedState.error}</div>
+            {seedState.log.includes('canForce') && (
+              <button
+                onClick={async () => {
+                  setSeedState({ loading: true, result: null, error: null, log: [] });
+                  try {
+                    const data = await seedGroupStage(true);
+                    setSeedState({ loading: false, result: `✅ ${data.message}`, error: null, log: [] });
+                  } catch (e: any) {
+                    setSeedState({ loading: false, result: null, error: `❌ ${e.message}`, log: [] });
+                  }
+                }}
+                className="w-full bg-red-600/20 border border-red-500/40 text-red-300 font-bold py-2 rounded-lg hover:bg-red-600/40 transition-colors text-sm"
+              >
+                ⚠️ Forçar Re-seed (apaga jogos existentes e reinsere o calendário oficial)
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Seed Round of 32 */}
+      <div className="bg-wc-navy border border-wc-blue rounded-xl p-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">⚔️ Criar 16 Jogos dos 16 Avos</h2>
+          <p className="text-white/50 text-sm mt-1">
+            Insere os 16 jogos da fase dos 16 avos com as datas, horas e estádios oficiais.<br />
+            Os slots das equipas (ex: "2A", "3º (A/B/C/D/F)") ficam como placeholder até os grupos terminarem.
+          </p>
+        </div>
+        <button
+          onClick={async () => {
+            setR32SeedState({ loading: true, result: null, error: null, log: [] });
+            try {
+              const data = await seedRoundOf32();
+              setR32SeedState({ loading: false, result: `✅ ${data.message}`, error: null, log: [] });
+            } catch (e: any) {
+              setR32SeedState({ loading: false, result: null, error: `❌ ${e.message}`, log: [] });
+            }
+          }}
+          disabled={r32SeedState.loading}
+          className="w-full bg-wc-blue border border-wc-gold/30 text-wc-gold font-bold py-3 rounded-lg hover:bg-wc-gold hover:text-wc-dark disabled:opacity-50 disabled:cursor-wait transition-colors text-lg"
+        >
+          {r32SeedState.loading ? '⏳ A criar...' : '⚔️ Criar 16 Jogos dos 16 Avos'}
+        </button>
+        {r32SeedState.result && (
+          <div className="mt-3 bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-300 text-sm">{r32SeedState.result}</div>
+        )}
+        {r32SeedState.error && (
+          <div className="mt-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-300 text-sm">{r32SeedState.error}</div>
+        )}
+      </div>
+
+      {/* Seed remaining knockout stages */}
+      <div className="bg-wc-navy border border-wc-blue rounded-xl p-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">🏆 Criar Oitavos → Final</h2>
+          <p className="text-white/50 text-sm mt-1">
+            Insere os 16 jogos restantes: oitavos, quartos, meias, bronze e final.<br />
+            Os slots (ex: "V73", "P101") ficam como placeholder até os jogos anteriores terminarem.
+          </p>
+        </div>
+        <button
+          onClick={async () => {
+            setKoSeedState({ loading: true, result: null, error: null, log: [] });
+            try {
+              const data = await seedKnockoutStages();
+              setKoSeedState({ loading: false, result: `✅ ${data.message}`, error: null, log: [] });
+            } catch (e: any) {
+              setKoSeedState({ loading: false, result: null, error: `❌ ${e.message}`, log: [] });
+            }
+          }}
+          disabled={koSeedState.loading}
+          className="w-full bg-wc-blue border border-wc-gold/30 text-wc-gold font-bold py-3 rounded-lg hover:bg-wc-gold hover:text-wc-dark disabled:opacity-50 disabled:cursor-wait transition-colors text-lg"
+        >
+          {koSeedState.loading ? '⏳ A criar...' : '🏆 Criar Oitavos → Final'}
+        </button>
+        {koSeedState.result && (
+          <div className="mt-3 bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-300 text-sm">{koSeedState.result}</div>
+        )}
+        {koSeedState.error && (
+          <div className="mt-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-300 text-sm">{koSeedState.error}</div>
         )}
       </div>
 

@@ -76,7 +76,12 @@ export default function Matches() {
           <label className="text-white/50 text-xs uppercase tracking-wider">Fase:</label>
           <select
             value={filterStage}
-            onChange={e => { setFilter('stage', e.target.value); setFilter('group', ''); }}
+            onChange={e => {
+              const p = new URLSearchParams(searchParams);
+              if (e.target.value) p.set('stage', e.target.value); else p.delete('stage');
+              p.delete('group');
+              setSearchParams(p);
+            }}
             className="bg-wc-blue text-white text-sm rounded-lg px-3 py-1.5 border border-wc-blue/50 focus:outline-none focus:border-wc-gold"
           >
             <option value="">Todas</option>

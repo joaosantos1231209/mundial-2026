@@ -7,7 +7,7 @@ import type { Match, StatsOverview } from '../types';
 
 function isToday(dateStr: string) {
   const today = new Date().toISOString().split('T')[0];
-  return dateStr === today;
+  return dateStr.split('T')[0] === today;
 }
 
 export default function Dashboard() {
@@ -147,12 +147,6 @@ export default function Dashboard() {
         </section>
       )}
 
-      {todayMatches.length === 0 && recentResults.length === 0 && upcoming.length === 0 && (
-        <div className="text-center py-16 text-white/30">
-          <div className="text-5xl mb-4">⚽</div>
-          <p className="text-sm mt-2">Vai a <Link to="/matches" className="text-wc-gold underline">Jogos</Link> para ver o calendário completo</p>
-        </div>
-      )}
     </div>
   );
 }
