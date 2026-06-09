@@ -1,0 +1,88 @@
+import express from 'express';
+import cors from 'cors';
+import { eq, or } from 'drizzle-orm';
+import teamsRouter from './routes/teams';
+import playersRouter from './routes/players';
+import matchesRouter from './routes/matches';
+import statsRouter from './routes/stats';
+import syncRouter from './routes/sync';
+import lineupsRouter from './routes/lineups';
+import simulateRouter from './routes/simulate';
+import healthRouter from './routes/health';
+import { syncLiveScores } from './services/espnSync';
+import db from './db/index';
+import { matches } from './db/schema';
+
+const app = express();
+const PORT = process.env.PORT || 3002;
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const allowed = ['http://localhost:5173', 'http://localhost:5174'];
+    // Permite IPs de rede local (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    const isLocal = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(origin);
+    callback(null, allowed.includes(origin) || isLocal);
+  },
+  credentials: true,
+}));
+app.use(express.json());
+
+app.use('/api/teams', teamsRouter);
+app.use('/api/players', playersRouter);
+app.use('/api/matches', matchesRouter);
+app.use('/api/stats', statsRouter);
+app.use('/api/sync', syncRouter);
+app.use('/api/lineups', lineupsRouter);
+app.use('/api/simulate', simulateRouter);
+app.use('/api/health', healthRouter);
+
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', app: 'Mundial 2026 API' }));
+
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ error: err.message || 'Erro interno do servidor' });
+});
+
+app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`🚀 API Mundial 2026 a correr em http://localhost:${PORT}`);
+  startAutoSync();
+});
+
+async function startAutoSync() {
+  let timer: ReturnType<typeof setTimeout>;
+
+  async function tick() {
+    const now = new Date();
+
+    // Verifica se há jogos ao vivo ou a começar nos próximos 15 minutos
+    const allMatches = await db.select({ status: matches.status, date: matches.date })
+      .from(matches)
+      .where(or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')));
+
+    const hasLive = allMatches.some(m => m.status === 'Live');
+    const hasSoon = allMatches.some(m => {
+      const diff = new Date(m.date).getTime() - now.getTime();
+      return diff >= 0 && diff <= 15 * 60 * 1000;
+    });
+
+    const interval = (hasLive || hasSoon) ? 30_000 : 5 * 60_000;
+
+    if (hasLive || hasSoon) {
+      try {
+        const result = await syncLiveScores();
+        if (result.updated > 0) {
+          console.log(`[AutoSync] ${result.updated} jogo(s) actualizados`);
+        }
+      } catch (err) {
+        console.error('[AutoSync] Erro:', err);
+      }
+    }
+
+    timer = setTimeout(tick, interval);
+  }
+
+  // Primeira execução 10 segundos após arranque
+  timer = setTimeout(tick, 10_000);
+  console.log('⚡ Auto-sync de resultados activo');
+}

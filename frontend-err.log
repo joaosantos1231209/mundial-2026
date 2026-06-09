@@ -1,0 +1,64 @@
+(node:12168) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/jpgom/OneDrive/Ambiente%20de%20Trabalho/Mundial/frontend/postcss.config.js?t=1780932384771 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\Users\jpgom\OneDrive\Ambiente de Trabalho\Mundial\frontend\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2m17:18:40[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/matches[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m17:18:40[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/matches[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:33:10[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/matches[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:33:10[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/stats/overview[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:33:10[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/matches[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:33:10[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/stats/overview[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:43:26[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/matches[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:43:26[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/stats/overview[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:43:26[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/matches[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:43:26[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/stats/overview[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:43:45[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/matches[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+[2m19:43:45[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/stats/overview[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+node:internal/process/promises:391
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+[Error: EPERM: operation not permitted, rmdir 'C:\Users\jpgom\OneDrive\Ambiente de Trabalho\Mundial\frontend\node_modules\.vite\deps_temp_17ad3885'] {
+  errno: -4048,
+  code: 'EPERM',
+  syscall: 'rmdir',
+  path: 'C:\\Users\\jpgom\\OneDrive\\Ambiente de Trabalho\\Mundial\\frontend\\node_modules\\.vite\\deps_temp_17ad3885'
+}
+
+Node.js v20.19.5

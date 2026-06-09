@@ -1,0 +1,33 @@
+
+  [32m[1mVITE[22m v6.4.3[39m  [2mready in [0m[1m1631[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.0.53:[1m5173[22m/[39m
+[2m16:46:55[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m16:46:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+[2m16:47:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/layout/Navbar.tsx, /src/index.css[22m
+[2m17:04:32[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Matches.tsx, /src/index.css[22m
+[2m17:04:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ui/MatchCard.tsx, /src/index.css[22m
+[2m17:04:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ui/MatchCard.tsx, /src/index.css[22m
+[2m17:06:16[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ui/MatchCard.tsx, /src/index.css[22m
+[2m17:06:21[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ui/MatchCard.tsx, /src/index.css[22m
+[2m17:06:27[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ui/MatchCard.tsx, /src/index.css[22m
+[2m17:06:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Matches.tsx, /src/index.css[22m
+[2m17:12:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Dashboard.tsx, /src/index.css, /src/pages/Bracket.tsx, /src/pages/Stats.tsx, /src/pages/Matches.tsx, /src/pages/Groups.tsx, /src/pages/Teams.tsx, /src/pages/MatchDetail.tsx, /src/pages/TeamDetail.tsx[22m
+[2m17:12:37[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ui/MatchCard.tsx, /src/index.css[22m
+[2m19:33:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ui/MatchCard.tsx, /src/index.css[22m
+[2m19:33:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ui/MatchCard.tsx, /src/index.css[22m
+[2m19:33:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Matches.tsx, /src/index.css[22m
+[2m19:33:21[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/MatchDetail.tsx, /src/index.css[22m
+[2m19:33:26[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/MatchDetail.tsx, /src/index.css[22m
+[2m19:33:33[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/MatchDetail.tsx, /src/index.css[22m
+[2m19:33:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/MatchDetail.tsx, /src/index.css[22m
+[2m19:33:52[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/MatchDetail.tsx, /src/index.css[22m
+[2m19:34:14[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/MatchDetail.tsx, /src/index.css[22m
+[2m19:43:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/types/index.ts[22m
+[2m19:43:44[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Dashboard.tsx, /src/index.css, /src/pages/Bracket.tsx, /src/pages/Stats.tsx, /src/pages/Matches.tsx, /src/pages/Groups.tsx, /src/pages/Teams.tsx, /src/pages/MatchDetail.tsx, /src/pages/TeamDetail.tsx[22m
+[2m19:44:56[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Admin.tsx, /src/index.css[22m
+[2m19:46:11[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/ui/MatchCard.tsx, /src/index.css[22m
+[2m19:47:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Stats.tsx, /src/index.css[22m
+[2m19:47:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ new dependencies optimized: [33mrecharts[32m[39m
+[2m19:47:25[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ optimized dependencies changed. reloading[39m

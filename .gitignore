@@ -1,0 +1,22 @@
+# Dependências
+node_modules/
+
+# Builds
+frontend/dist/
+backend/dist/
+
+# Variáveis de ambiente (contêm passwords e tokens)
+.env
+.env.local
+.env.production
+
+# Base de dados local (se existir)
+backend/mundial.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
