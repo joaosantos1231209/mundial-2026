@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import ScraperHealthMonitor from '../components/ScraperHealthMonitor';
 import { downloadBackup } from '../lib/api';
 
@@ -15,6 +15,57 @@ async function apiPost(path: string) {
   const res = await fetch(path, { method: 'POST' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
+}
+
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? 'admin';
+const SESSION_KEY = 'mundial_admin_auth';
+
+function AdminGate({ children }: { children: React.ReactNode }) {
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem(SESSION_KEY) === '1');
+  const [input, setInput] = useState('');
+  const [error, setError] = useState(false);
+
+  if (authed) return <>{children}</>;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input === ADMIN_PASSWORD) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      setAuthed(true);
+    } else {
+      setError(true);
+      setInput('');
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="card-gradient rounded-2xl p-8 w-full max-w-sm space-y-6">
+        <div className="text-center">
+          <div className="text-4xl mb-3">🔒</div>
+          <h2 className="text-xl font-bold text-white">Área Restrita</h2>
+          <p className="text-white/40 text-sm mt-1">Insere a password para aceder ao painel de administração</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="password"
+            value={input}
+            onChange={e => { setInput(e.target.value); setError(false); }}
+            placeholder="Password"
+            autoFocus
+            className="w-full bg-wc-blue border border-wc-blue/60 rounded-lg px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-wc-gold/50 transition-colors"
+          />
+          {error && <p className="text-red-400 text-sm text-center">Password incorreta</p>}
+          <button
+            type="submit"
+            className="w-full bg-wc-gold text-wc-dark font-bold py-3 rounded-lg hover:bg-wc-gold-light transition-colors"
+          >
+            Entrar
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 export default function Admin() {
@@ -52,6 +103,7 @@ export default function Admin() {
   };
 
   return (
+    <AdminGate>
     <div className="space-y-8 max-w-2xl mx-auto">
       <div className="flex items-start justify-between">
         <div>
@@ -153,5 +205,6 @@ export default function Admin() {
         <div className="mt-4 text-white/30 text-xs">Fonte: ESPN API pública · Gratuita · Sem registo</div>
       </div>
     </div>
+    </AdminGate>
   );
 }
