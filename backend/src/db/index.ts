@@ -4,7 +4,7 @@ import * as schema from './schema';
 import 'dotenv/config';
 
 const client = postgres(process.env.DATABASE_URL!, {
-  ssl: process.env.NODE_ENV === 'production' ? 'require' : false,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 export const db = drizzle(client, { schema });
 export default db;
