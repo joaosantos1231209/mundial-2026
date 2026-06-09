@@ -22,7 +22,9 @@ app.use(cors({
     const allowed = ['http://localhost:5173', 'http://localhost:5174'];
     // Permite IPs de rede local (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
     const isLocal = /^https?:\/\/(192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(origin);
-    callback(null, allowed.includes(origin) || isLocal);
+    // Permite qualquer subdomínio do Vercel
+    const isVercel = /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin);
+    callback(null, allowed.includes(origin) || isLocal || isVercel);
   },
   credentials: true,
 }));
