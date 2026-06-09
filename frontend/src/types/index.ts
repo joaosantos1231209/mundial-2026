@@ -31,6 +31,7 @@ export interface Player {
   shotsOnTarget: number;
   fouls: number;
   isCaptain: number;
+  isViceCaptain: number;
   isCornerKicker: number;
   isFreekickTaker: number;
   isPenaltyTaker: number;

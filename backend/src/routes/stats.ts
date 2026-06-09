@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { desc, asc, eq, and, sql } from 'drizzle-orm';
+import { desc, asc, eq, and, or, sql } from 'drizzle-orm';
 import db from '../db/index';
 import { players, teams, matches, matchEvents } from '../db/schema';
 
@@ -71,7 +71,7 @@ router.get('/overview', async (_req, res) => {
 // GET /api/stats/goals-by-minute — distribuição de golos por quarto de hora
 router.get('/goals-by-minute', async (_req, res) => {
   const goalEvents = await db.select().from(matchEvents)
-    .where(eq(matchEvents.eventType, 'Goal'));
+    .where(or(eq(matchEvents.eventType, 'Goal'), eq(matchEvents.eventType, 'OwnGoal')));
 
   const buckets: Record<string, number> = {
     '1-15': 0, '16-30': 0, '31-45': 0, '45+': 0,
@@ -84,7 +84,6 @@ router.get('/goals-by-minute', async (_req, res) => {
     else if (min >= 76) buckets['76-90']++;
     else if (min >= 61) buckets['61-75']++;
     else if (min >= 46) buckets['46-60']++;
-    else if (min >= 46) buckets['45+']++;
     else if (min >= 45) buckets['45+']++;
     else if (min >= 31) buckets['31-45']++;
     else if (min >= 16) buckets['16-30']++;

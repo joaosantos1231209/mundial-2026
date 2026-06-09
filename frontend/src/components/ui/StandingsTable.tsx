@@ -48,7 +48,8 @@ export default function StandingsTable({ teams, groupName, compact }: Props) {
             <tr
               key={team.id}
               className={`border-b border-wc-blue/30 last:border-0 hover:bg-wc-blue/20 transition-colors ${
-                idx < 2 ? 'border-l-2 border-l-wc-gold' : ''
+                idx < 2 ? 'border-l-2 border-l-wc-gold' :
+                idx === 2 ? 'border-l-2 border-l-gray-500 bg-white/[0.03]' : ''
               }`}
             >
               <td className="pl-4 py-3 text-white/40 font-medium">{idx + 1}</td>
@@ -78,9 +79,9 @@ export default function StandingsTable({ teams, groupName, compact }: Props) {
         </tbody>
       </table>
       {!compact && (
-        <div className="px-4 py-2 text-xs text-white/30 border-t border-wc-blue/30">
-          <span className="inline-block w-3 h-3 bg-wc-gold rounded-sm mr-1"></span>
-          Top 2 avançam para a fase eliminatória
+        <div className="px-4 py-2 text-xs text-white/30 border-t border-wc-blue/30 space-y-1">
+          <div><span className="inline-block w-3 h-3 bg-wc-gold rounded-sm mr-1 align-middle"></span>Top 2 avançam para a fase eliminatória</div>
+          <div><span className="inline-block w-3 h-3 bg-gray-500/60 rounded-sm mr-1 align-middle"></span>8 melhores 3ºs avançam</div>
         </div>
       )}
     </div>

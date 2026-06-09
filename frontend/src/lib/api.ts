@@ -71,6 +71,15 @@ export const downloadBackup = () => window.open(`${BASE}/health/backup`, '_blank
 // Sync
 export const syncScores = () => request<{ updated: number; errors: string[] }>('/sync/scores', { method: 'POST' });
 export const syncMatchStats = (matchId: number) => request<{ events: number; error?: string }>(`/sync/stats/${matchId}`, { method: 'POST' });
+export const generateKnockout = () => request<{ success: boolean; created: number; message: string }>('/matches/generate-knockout', { method: 'POST' });
+
+// Push notifications
+export const getVapidPublicKey = () => request<{ publicKey: string }>('/push/vapid-public-key');
+export const subscribePush = (sub: { endpoint: string; p256dh: string; auth: string }) =>
+  request<{ success: boolean }>('/push/subscribe', { method: 'POST', body: JSON.stringify(sub) });
+export const unsubscribePush = (endpoint: string) =>
+  request<{ success: boolean }>('/push/unsubscribe', { method: 'DELETE', body: JSON.stringify({ endpoint }) });
+export const testPush = () => request<{ success: boolean }>('/push/test', { method: 'POST' });
 
 // ESPN live match data
 export const getMatchEspnData = (matchId: number) => request<{

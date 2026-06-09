@@ -34,6 +34,7 @@ export const players = pgTable('players', {
   shotsOnTarget: integer('shots_on_target').notNull().default(0),
   fouls: integer('fouls').notNull().default(0),
   isCaptain: integer('is_captain').notNull().default(0),
+  isViceCaptain: integer('is_vice_captain').notNull().default(0),
   isCornerKicker: integer('is_corner_kicker').notNull().default(0),
   isFreekickTaker: integer('is_freekick_taker').notNull().default(0),
   isPenaltyTaker: integer('is_penalty_taker').notNull().default(0),
@@ -72,6 +73,14 @@ export const lineups = pgTable('lineups', {
   posX: integer('pos_x').notNull().default(50),
   posY: integer('pos_y').notNull().default(50),
   isStarter: integer('is_starter').notNull().default(1),
+});
+
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: serial('id').primaryKey(),
+  endpoint: text('endpoint').notNull().unique(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  createdAt: text('created_at').notNull().default(''),
 });
 
 export const scraperLogs = pgTable('scraper_logs', {

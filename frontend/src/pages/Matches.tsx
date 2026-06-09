@@ -6,7 +6,15 @@ import type { Match } from '../types';
 
 const ALL_GROUPS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 const STAGES = ['Group', 'Round of 32', 'Round of 16', 'Quarter-Final', 'Semi-Final', 'Third Place', 'Final'];
-const STATUSES = ['Scheduled', 'Live', 'Finished'];
+const STAGE_LABELS: Record<string, string> = {
+  'Group': 'Fase de Grupos',
+  'Round of 32': 'Fase dos 32',
+  'Round of 16': 'Oitavos de Final',
+  'Quarter-Final': 'Quartos de Final',
+  'Semi-Final': 'Meias-Finais',
+  'Third Place': '3º Lugar',
+  'Final': 'Final',
+};
 
 function groupByDate(matches: Match[]) {
   const grouped: Record<string, Match[]> = {};
@@ -72,7 +80,7 @@ export default function Matches() {
             className="bg-wc-blue text-white text-sm rounded-lg px-3 py-1.5 border border-wc-blue/50 focus:outline-none focus:border-wc-gold"
           >
             <option value="">Todas</option>
-            {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+            {STAGES.map(s => <option key={s} value={s}>{STAGE_LABELS[s] ?? s}</option>)}
           </select>
         </div>
 

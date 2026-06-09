@@ -6,6 +6,7 @@ import QuickEditModal from '../QuickEditModal';
 interface Props {
   match: Match;
   compact?: boolean;
+  showDate?: boolean;
   onUpdated?: () => void;
 }
 
@@ -26,7 +27,14 @@ function formatTime(dateStr: string): string {
   return dateStr.split('T')[1].substring(0, 5);
 }
 
-export default function MatchCard({ match, compact, onUpdated }: Props) {
+function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr.split('T')[0] + 'T12:00:00');
+  const weekday = d.toLocaleDateString('pt-PT', { weekday: 'short' });
+  const day = d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+  return `${weekday.replace('.', '')} ${day}`;
+}
+
+export default function MatchCard({ match, compact, showDate, onUpdated }: Props) {
   const { homeTeam, awayTeam, homeScore, awayScore, status, date, stage, groupName, venue } = match;
   const [showEdit, setShowEdit] = useState(false);
   const time = formatTime(date);
@@ -34,6 +42,7 @@ export default function MatchCard({ match, compact, onUpdated }: Props) {
 
   const isFinished = status === 'Finished';
   const isLive = status === 'Live';
+  const isScheduled = status === 'Scheduled';
 
   return (
     <>
@@ -69,7 +78,7 @@ export default function MatchCard({ match, compact, onUpdated }: Props) {
                 <img src={homeTeam.flagUrl} alt={homeTeam.code} className="w-8 h-5 object-cover rounded-sm shadow" />
               </div>
 
-              {/* Score */}
+              {/* Score / Time */}
               <div className="flex items-center gap-2 shrink-0">
                 {isFinished ? (
                   <div className="flex items-center gap-1 bg-wc-blue px-3 py-1.5 rounded-lg">
@@ -84,7 +93,12 @@ export default function MatchCard({ match, compact, onUpdated }: Props) {
                     <span className="text-xl font-bold text-white">{awayScore ?? 0}</span>
                   </div>
                 ) : (
-                  <div className="flex items-center bg-wc-blue/50 px-3 py-1.5 rounded-lg min-w-[70px] justify-center">
+                  <div className="flex flex-col items-center bg-wc-blue/50 px-3 py-1 rounded-lg min-w-[70px] justify-center">
+                    {showDate && isScheduled && (
+                      <span className="text-white/40 text-xs font-medium capitalize">
+                        {formatShortDate(date)}
+                      </span>
+                    )}
                     <span className="text-base font-bold text-white font-mono">{time || '—'}</span>
                   </div>
                 )}

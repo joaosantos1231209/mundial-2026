@@ -42,7 +42,7 @@ router.patch('/:id', async (req, res) => {
   const id = Number(req.params.id);
   const { name, position, shirtNumber, goals, assists, yellowCards, redCards, cleanSheets,
     minutesPlayed, shots, shotsOnTarget, fouls,
-    isCaptain, isCornerKicker, isFreekickTaker, isPenaltyTaker } = req.body;
+    isCaptain, isViceCaptain, isCornerKicker, isFreekickTaker, isPenaltyTaker } = req.body;
   const updateData: Partial<typeof players.$inferInsert> = {};
   if (name !== undefined) updateData.name = name;
   if (position !== undefined) updateData.position = position;
@@ -57,6 +57,7 @@ router.patch('/:id', async (req, res) => {
   if (shotsOnTarget !== undefined) updateData.shotsOnTarget = Number(shotsOnTarget);
   if (fouls !== undefined) updateData.fouls = Number(fouls);
   if (isCaptain !== undefined) updateData.isCaptain = isCaptain ? 1 : 0;
+  if (isViceCaptain !== undefined) updateData.isViceCaptain = isViceCaptain ? 1 : 0;
   if (isCornerKicker !== undefined) updateData.isCornerKicker = isCornerKicker ? 1 : 0;
   if (isFreekickTaker !== undefined) updateData.isFreekickTaker = isFreekickTaker ? 1 : 0;
   if (isPenaltyTaker !== undefined) updateData.isPenaltyTaker = isPenaltyTaker ? 1 : 0;

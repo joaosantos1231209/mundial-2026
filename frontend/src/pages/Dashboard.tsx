@@ -127,7 +127,7 @@ export default function Dashboard() {
             <Link to="/matches" className="text-wc-gold text-sm hover:underline">Calendário completo →</Link>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            {upcoming.map(m => <MatchCard key={m.id} match={m} compact />)}
+            {upcoming.map(m => <MatchCard key={m.id} match={m} compact showDate />)}
           </div>
         </section>
       )}
@@ -147,10 +147,9 @@ export default function Dashboard() {
         </section>
       )}
 
-      {todayMatches.length === 0 && recentResults.length === 0 && (
+      {todayMatches.length === 0 && recentResults.length === 0 && upcoming.length === 0 && (
         <div className="text-center py-16 text-white/30">
           <div className="text-5xl mb-4">⚽</div>
-          <p className="text-lg">O torneio começa a 11 de Junho de 2026</p>
           <p className="text-sm mt-2">Vai a <Link to="/matches" className="text-wc-gold underline">Jogos</Link> para ver o calendário completo</p>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { eq, and, or, sql } from 'drizzle-orm';
 import db from '../db/index';
 import { teams, players, matches, matchEvents, scraperLogs } from '../db/schema';
+import { sendNotification } from './pushService';
 
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World';
 
@@ -196,7 +197,7 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
             matchId,
             playerId: player?.id ?? null,
             teamId: player?.teamId ?? teamId,
-            eventType: isOwnGoal ? 'own_goal' : 'goal',
+            eventType: isOwnGoal ? 'OwnGoal' : 'Goal',
             minute,
             description: event.shortText || scorer.athlete.displayName,
           });
@@ -208,7 +209,7 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
             matchId,
             playerId: player?.id ?? null,
             teamId: player?.teamId ?? teamId,
-            eventType: 'assist',
+            eventType: 'Assist',
             minute,
             description: assister.athlete.displayName,
           });
@@ -221,7 +222,7 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
           const player = findPlayerByName(participant.athlete.displayName, playerMap);
           eventsToInsert.push({
             matchId, playerId: player?.id ?? null, teamId: player?.teamId ?? teamId,
-            eventType: 'yellow_card', minute, description: participant.athlete.displayName,
+            eventType: 'Yellow', minute, description: participant.athlete.displayName,
           });
         }
       }
@@ -232,7 +233,7 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
           const player = findPlayerByName(participant.athlete.displayName, playerMap);
           eventsToInsert.push({
             matchId, playerId: player?.id ?? null, teamId: player?.teamId ?? teamId,
-            eventType: 'red_card', minute, description: participant.athlete.displayName,
+            eventType: 'Red', minute, description: participant.athlete.displayName,
           });
         }
       }
@@ -290,10 +291,10 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
     const affectedPlayerIds = [...new Set(eventsToInsert.map(e => e.playerId).filter(Boolean))] as number[];
     for (const playerId of affectedPlayerIds) {
       const events = await db.select().from(matchEvents).where(eq(matchEvents.playerId, playerId));
-      const goals = events.filter(e => e.eventType === 'goal').length;
-      const assists = events.filter(e => e.eventType === 'assist').length;
-      const yellowCards = events.filter(e => e.eventType === 'yellow_card').length;
-      const redCards = events.filter(e => e.eventType === 'red_card').length;
+      const goals = events.filter(e => e.eventType === 'Goal').length;
+      const assists = events.filter(e => e.eventType === 'Assist').length;
+      const yellowCards = events.filter(e => e.eventType === 'Yellow').length;
+      const redCards = events.filter(e => e.eventType === 'Red').length;
       const minutesPlayed = events.filter(e => e.eventType === 'minutes_played').reduce((s, e) => s + (e.minute || 0), 0);
 
       await db.update(players)
@@ -351,6 +352,8 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
 
         if (match) {
           const prevStatus = match.status;
+          const prevHome = match.homeScore ?? 0;
+          const prevAway = match.awayScore ?? 0;
           const updateData: Partial<typeof matches.$inferInsert> = {
             status: newStatus,
             espnEventId: event.id,
@@ -370,6 +373,19 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
             syncMatchStats(match.id, event.id).catch(err =>
               console.error(`[AutoSync] Stats error for match ${match.id}:`, err.message)
             );
+          }
+
+          // Push notifications
+          const ht = homeTeam.name;
+          const at = awayTeam.name;
+          const matchUrl = `/matches/${match.id}`;
+          if (prevStatus === 'Scheduled' && newStatus === 'Live') {
+            sendNotification(`⚽ Jogo iniciado!`, `${ht} vs ${at} — O jogo começou!`, matchUrl).catch(() => {});
+          } else if (newStatus === 'Finished' && prevStatus !== 'Finished') {
+            sendNotification(`🏁 Jogo terminado`, `${ht} ${homeScore}–${awayScore} ${at}`, matchUrl).catch(() => {});
+          } else if (newStatus === 'Live' && (homeScore !== prevHome || awayScore !== prevAway)) {
+            const who = homeScore > prevHome ? ht : at;
+            sendNotification(`⚽ Golo! ${ht} ${homeScore}–${awayScore} ${at}`, `${who} marca!`, matchUrl).catch(() => {});
           }
 
           updated++;

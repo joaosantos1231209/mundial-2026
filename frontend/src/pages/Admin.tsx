@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ScraperHealthMonitor from '../components/ScraperHealthMonitor';
-import { downloadBackup } from '../lib/api';
+import { downloadBackup, generateKnockout } from '../lib/api';
 
 interface SyncState {
   loading: boolean;
@@ -71,6 +71,7 @@ function AdminGate({ children }: { children: React.ReactNode }) {
 export default function Admin() {
   const [squadsState, setSquadsState] = useState<SyncState>(initial);
   const [scoresState, setScoresState] = useState<SyncState>(initial);
+  const [knockoutState, setKnockoutState] = useState<SyncState>(initial);
 
   const syncSquads = async () => {
     setSquadsState({ loading: true, result: null, error: null, log: ['A iniciar sincronização de plantéis...'] });
@@ -187,6 +188,38 @@ export default function Admin() {
         )}
         {!scoresState.loading && scoresState.error && !scoresState.result && (
           <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-300 text-sm">{scoresState.error}</div>
+        )}
+      </div>
+
+      {/* Generate Knockout */}
+      <div className="bg-wc-navy border border-wc-blue rounded-xl p-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">🏆 Gerar Fase dos 32</h2>
+          <p className="text-white/50 text-sm mt-1">
+            Cria automaticamente os 16 jogos da fase dos 32 com base nos grupos finais.<br />
+            Usa os 12 primeiros classificados, os 12 segundos, e os 8 melhores terceiros.
+          </p>
+        </div>
+        <button
+          onClick={async () => {
+            setKnockoutState({ loading: true, result: null, error: null, log: [] });
+            try {
+              const data = await generateKnockout();
+              setKnockoutState({ loading: false, result: `✅ ${data.message}`, error: null, log: [] });
+            } catch (e: any) {
+              setKnockoutState({ loading: false, result: null, error: `❌ ${e.message}`, log: [] });
+            }
+          }}
+          disabled={knockoutState.loading}
+          className="w-full bg-wc-blue border border-wc-gold/30 text-wc-gold font-bold py-3 rounded-lg hover:bg-wc-gold hover:text-wc-dark disabled:opacity-50 disabled:cursor-wait transition-colors text-lg"
+        >
+          {knockoutState.loading ? '⏳ A gerar...' : '🏆 Gerar Fase dos 32'}
+        </button>
+        {knockoutState.result && (
+          <div className="mt-3 bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-green-300 text-sm">{knockoutState.result}</div>
+        )}
+        {knockoutState.error && (
+          <div className="mt-3 bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-300 text-sm">{knockoutState.error}</div>
         )}
       </div>
 

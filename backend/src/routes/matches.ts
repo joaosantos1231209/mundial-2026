@@ -239,4 +239,87 @@ router.get('/:id/espn', async (req, res) => {
   }
 });
 
+// POST /api/matches/generate-knockout — cria os 16 jogos da fase dos 32 com base nos grupos
+router.post('/generate-knockout', async (_req, res) => {
+  const existing = await db.select().from(matches).where(eq(matches.stage, 'Round of 32'));
+  if (existing.length > 0) {
+    return res.status(409).json({ error: `Já existem ${existing.length} jogos da fase dos 32. Remove-os primeiro se quiseres regenerar.` });
+  }
+
+  const allTeams = await db.select().from(teams);
+  const allGroups = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+
+  function sortTeams(ts: typeof allTeams) {
+    return [...ts].sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      const gdA = a.goalsFor - a.goalsAgainst;
+      const gdB = b.goalsFor - b.goalsAgainst;
+      if (gdB !== gdA) return gdB - gdA;
+      return b.goalsFor - a.goalsFor;
+    });
+  }
+
+  const standings: Record<string, typeof allTeams> = {};
+  for (const g of allGroups) {
+    standings[g] = sortTeams(allTeams.filter(t => t.group === g));
+  }
+
+  const thirds = allGroups
+    .map(g => standings[g]?.[2])
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      const gdA = a.goalsFor - a.goalsAgainst;
+      const gdB = b.goalsFor - b.goalsAgainst;
+      if (gdB !== gdA) return gdB - gdA;
+      return b.goalsFor - a.goalsFor;
+    })
+    .slice(0, 8);
+
+  // FIFA 2026 R32 bracket — first 12 slots: group winners vs runners-up
+  // Last 4 slots: best thirds pairings
+  const pairings: Array<[typeof allTeams[0] | undefined, typeof allTeams[0] | undefined]> = [
+    [standings['A']?.[0], standings['B']?.[1]],
+    [standings['C']?.[0], standings['D']?.[1]],
+    [standings['E']?.[0], standings['F']?.[1]],
+    [standings['G']?.[0], standings['H']?.[1]],
+    [standings['I']?.[0], standings['J']?.[1]],
+    [standings['K']?.[0], standings['L']?.[1]],
+    [standings['B']?.[0], standings['A']?.[1]],
+    [standings['D']?.[0], standings['C']?.[1]],
+    [standings['F']?.[0], standings['E']?.[1]],
+    [standings['H']?.[0], standings['G']?.[1]],
+    [standings['J']?.[0], standings['I']?.[1]],
+    [standings['L']?.[0], standings['K']?.[1]],
+    [thirds[0], thirds[1]],
+    [thirds[2], thirds[3]],
+    [thirds[4], thirds[5]],
+    [thirds[6], thirds[7]],
+  ];
+
+  // Dates: June 26–July 3 2026, 2 per day at 18:00 and 22:00 UTC
+  const toCreate: Array<typeof matches.$inferInsert> = [];
+  for (let i = 0; i < 16; i++) {
+    const [home, away] = pairings[i];
+    if (!home || !away) continue;
+    const dayOffset = Math.floor(i / 2);
+    const hourOffset = (i % 2) * 4;
+    const dt = new Date(`2026-06-26T${String(18 + hourOffset).padStart(2, '0')}:00:00Z`);
+    dt.setDate(dt.getDate() + dayOffset);
+    toCreate.push({
+      stage: 'Round of 32',
+      homeTeamId: home.id,
+      awayTeamId: away.id,
+      status: 'Scheduled',
+      date: dt.toISOString(),
+      venue: '',
+    });
+  }
+
+  if (toCreate.length === 0) return res.status(400).json({ error: 'Sem equipas suficientes — verifica que todos os grupos têm pelo menos 2 equipas' });
+
+  const created = await db.insert(matches).values(toCreate).returning();
+  res.json({ success: true, created: created.length, message: `${created.length} jogos da fase dos 32 criados!` });
+});
+
 export default router;

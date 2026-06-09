@@ -9,6 +9,8 @@ import syncRouter from './routes/sync';
 import lineupsRouter from './routes/lineups';
 import simulateRouter from './routes/simulate';
 import healthRouter from './routes/health';
+import pushRouter from './routes/push';
+import { sendNotification } from './services/pushService';
 import { syncLiveScores } from './services/espnSync';
 import db from './db/index';
 import { matches } from './db/schema';
@@ -38,6 +40,7 @@ app.use('/api/sync', syncRouter);
 app.use('/api/lineups', lineupsRouter);
 app.use('/api/simulate', simulateRouter);
 app.use('/api/health', healthRouter);
+app.use('/api/push', pushRouter);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', app: 'Mundial 2026 API' }));
 
@@ -63,10 +66,19 @@ async function startAutoSync() {
       .where(or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')));
 
     const hasLive = allMatches.some(m => m.status === 'Live');
-    const hasSoon = allMatches.some(m => {
+    const soonMatches = allMatches.filter(m => {
       const diff = new Date(m.date).getTime() - now.getTime();
-      return diff >= 0 && diff <= 15 * 60 * 1000;
+      return m.status === 'Scheduled' && diff >= 0 && diff <= 15 * 60 * 1000;
     });
+    const hasSoon = soonMatches.length > 0;
+
+    // Send "starting soon" push for matches 10 min away (only once, when window 8–12 min)
+    for (const m of soonMatches) {
+      const diff = new Date(m.date).getTime() - now.getTime();
+      if (diff >= 8 * 60 * 1000 && diff <= 12 * 60 * 1000) {
+        sendNotification('⏰ Jogo em 10 minutos!', `${m.date.substring(11, 16)} — A começar em breve`, '/matches').catch(() => {});
+      }
+    }
 
     const interval = (hasLive || hasSoon) ? 30_000 : 5 * 60_000;
 

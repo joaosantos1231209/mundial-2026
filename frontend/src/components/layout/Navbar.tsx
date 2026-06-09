@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import NotificationToggle from '../NotificationToggle';
 
 const links = [
   { to: '/', label: 'Dashboard', icon: '🏠' },
@@ -40,7 +41,7 @@ export default function Navbar() {
           <div className="hidden sm:block w-px h-6 bg-white/10 flex-shrink-0" />
 
           {/* Links — scrollable horizontal em mobile */}
-          <div className="flex items-center gap-0.5 overflow-x-auto flex-1 scrollbar-none">
+          <div className="flex items-center gap-0.5 overflow-x-auto flex-1 scrollbar-none min-w-0">
             {links.map(link => (
               <NavLink
                 key={link.to}
@@ -62,6 +63,9 @@ export default function Navbar() {
               </NavLink>
             ))}
           </div>
+
+          {/* Notification bell */}
+          <NotificationToggle />
         </div>
       </div>
     </nav>

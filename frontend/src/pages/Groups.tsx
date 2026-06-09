@@ -67,7 +67,7 @@ export default function Groups() {
           {groupMatches.length === 0 ? (
             <div className="text-white/30 text-sm py-4">Sem jogos</div>
           ) : (
-            groupMatches.map(m => <MatchCard key={m.id} match={m} compact />)
+            groupMatches.map(m => <MatchCard key={m.id} match={m} compact showDate />)
           )}
         </div>
       </div>

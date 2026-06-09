@@ -154,7 +154,7 @@ export default function Bracket() {
 
           {/* Round of 32 — projected */}
           <div className="flex flex-col">
-            <div className="text-wc-gold text-xs font-bold uppercase tracking-widest mb-4 text-center">Oitavos de Final</div>
+            <div className="text-wc-gold text-xs font-bold uppercase tracking-widest mb-4 text-center">Fase dos 32</div>
             <div className="flex flex-col gap-4">
               {provisionalR32.map((slot, i) => (
                 <BracketMatch
@@ -173,9 +173,9 @@ export default function Bracket() {
             return (
               <div key={stage} className="flex flex-col">
                 <div className="text-wc-gold text-xs font-bold uppercase tracking-widest mb-4 text-center">
-                  {stage === 'Round of 16' ? '16 Avos' :
-                   stage === 'Quarter-Final' ? 'Quartos' :
-                   stage === 'Semi-Final' ? 'Meias' :
+                  {stage === 'Round of 16' ? 'Oitavos de Final' :
+                   stage === 'Quarter-Final' ? 'Quartos de Final' :
+                   stage === 'Semi-Final' ? 'Meias-Finais' :
                    stage === 'Third Place' ? '3º Lugar' : stage}
                 </div>
                 <div className="flex flex-col justify-around gap-4 flex-1">

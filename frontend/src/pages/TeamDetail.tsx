@@ -19,9 +19,7 @@ type ActiveTab = 'squad' | 'tactical';
 function RoleBadges({ player, onToggle }: { player: Player; onToggle?: (field: string, val: boolean) => void }) {
   const badges = [
     { key: 'isCaptain', label: 'C', title: 'Capitão', active: !!player.isCaptain, color: 'bg-wc-gold text-wc-dark' },
-    { key: 'isPenaltyTaker', label: 'PK', title: 'Marcador de penáltis', active: !!player.isPenaltyTaker, color: 'bg-purple-500 text-white' },
-    { key: 'isFreekickTaker', label: 'FK', title: 'Marcador de livres', active: !!player.isFreekickTaker, color: 'bg-orange-500 text-white' },
-    { key: 'isCornerKicker', label: 'CK', title: 'Cobrador de cantos', active: !!player.isCornerKicker, color: 'bg-cyan-500 text-white' },
+    { key: 'isViceCaptain', label: 'VC', title: 'Vice-Capitão', active: !!player.isViceCaptain, color: 'bg-amber-600 text-white' },
   ];
 
   return (
@@ -155,30 +153,7 @@ export default function TeamDetail() {
             <span className="text-wc-gold font-bold uppercase tracking-wider text-sm">
               Plantel ({team.players?.length ?? 0})
             </span>
-            <button onClick={() => setShowAddPlayer(!showAddPlayer)}
-              className="text-xs bg-wc-gold text-wc-dark font-bold px-3 py-1 rounded-lg hover:bg-wc-gold-light transition-colors">
-              {showAddPlayer ? 'Cancelar' : '+ Jogador'}
-            </button>
           </div>
-
-          {showAddPlayer && (
-            <div className="p-4 border-b border-wc-blue/30 bg-wc-blue/20">
-              <div className="flex gap-2 flex-wrap">
-                <input type="text" placeholder="Nome do jogador" value={newPlayer.name} onChange={e => setNewPlayer(p => ({ ...p, name: e.target.value }))}
-                  className="flex-1 min-w-32 bg-wc-blue border border-wc-blue/50 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-wc-gold placeholder-white/30" />
-                <select value={newPlayer.position} onChange={e => setNewPlayer(p => ({ ...p, position: e.target.value }))}
-                  className="bg-wc-blue border border-wc-blue/50 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-wc-gold">
-                  {POSITIONS.map(pos => <option key={pos} value={pos}>{pos}</option>)}
-                </select>
-                <input type="number" placeholder="#" min="1" max="99" value={newPlayer.shirtNumber} onChange={e => setNewPlayer(p => ({ ...p, shirtNumber: e.target.value }))}
-                  className="w-16 bg-wc-blue border border-wc-blue/50 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-wc-gold" />
-                <button onClick={handleAddPlayer} disabled={saving || !newPlayer.name}
-                  className="bg-wc-gold text-wc-dark font-bold px-4 py-2 rounded-lg hover:bg-wc-gold-light disabled:opacity-50 text-sm">
-                  Adicionar
-                </button>
-              </div>
-            </div>
-          )}
 
           <div className="divide-y divide-wc-blue/20">
             {playersByPos.map(({ pos, players: posPlayers }) => posPlayers.length > 0 && (
@@ -201,15 +176,13 @@ export default function TeamDetail() {
                       {p.redCards > 0 && <span>🟥 {p.redCards}</span>}
                       {p.cleanSheets > 0 && <span>🧤 {p.cleanSheets}</span>}
                     </div>
-                    <button onClick={() => handleDeletePlayer(p.id)}
-                      className="opacity-0 group-hover:opacity-100 text-red-400/60 hover:text-red-400 text-xs transition-opacity">✕</button>
                   </div>
                 ))}
               </div>
             ))}
             {(team.players?.length ?? 0) === 0 && (
               <div className="py-12 text-center text-white/30 text-sm">
-                Plantel vazio. Clica em "+ Jogador" para adicionar.
+                Plantel vazio. Usa o painel Admin para sincronizar os plantéis.
               </div>
             )}
           </div>
@@ -223,7 +196,7 @@ export default function TeamDetail() {
             <h3 className="text-wc-gold font-bold uppercase tracking-wider text-sm">Prancheta Tática — {team.defaultFormation}</h3>
             <div className="flex gap-2 text-xs text-white/40">
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-wc-gold inline-block"></span> Capitão</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-500 inline-block"></span> PK</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-amber-600 inline-block"></span> Vice-Cap.</span>
             </div>
           </div>
           {(team.players?.length ?? 0) === 0 ? (
