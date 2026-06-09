@@ -171,6 +171,11 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
       }
     }
 
+    // Guardar contagens anteriores para detectar eventos novos
+    const prevEvents = await db.select().from(matchEvents).where(eq(matchEvents.matchId, matchId));
+    const prevGoals = prevEvents.filter(e => e.eventType === 'Goal' || e.eventType === 'OwnGoal').length;
+    const prevReds = prevEvents.filter(e => e.eventType === 'Red').length;
+
     // Limpar eventos anteriores deste jogo
     await db.delete(matchEvents).where(eq(matchEvents.matchId, matchId));
 
@@ -287,6 +292,42 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
       await db.insert(matchEvents).values(eventsToInsert);
     }
 
+    // Notificações de novos golos e expulsões
+    const matchUrl = `/matches/${matchId}`;
+    const homeCode = match.homeTeam?.code ?? '?';
+    const awayCode = match.awayTeam?.code ?? '?';
+
+    const newGoals = eventsToInsert.filter(e => e.eventType === 'Goal' || e.eventType === 'OwnGoal');
+    if (newGoals.length > prevGoals) {
+      for (const goal of newGoals.slice(prevGoals)) {
+        const scorer = goal.playerId
+          ? teamPlayers.find(p => p.id === goal.playerId)
+          : null;
+        const scorerName = scorer?.name ?? (goal.teamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name) ?? '?';
+        const isOG = goal.eventType === 'OwnGoal';
+        sendNotification(
+          `⚽ Golo! ${homeCode} vs ${awayCode}`,
+          `${scorerName}${isOG ? ' (golo próprio)' : ' marca!'}`,
+          matchUrl
+        ).catch(() => {});
+      }
+    }
+
+    const newReds = eventsToInsert.filter(e => e.eventType === 'Red');
+    if (newReds.length > prevReds) {
+      for (const red of newReds.slice(prevReds)) {
+        const expelled = red.playerId
+          ? teamPlayers.find(p => p.id === red.playerId)
+          : null;
+        const expelledName = expelled?.name ?? '?';
+        sendNotification(
+          `🟥 Expulsão! ${homeCode} vs ${awayCode}`,
+          `${expelledName} viu o cartão vermelho`,
+          matchUrl
+        ).catch(() => {});
+      }
+    }
+
     // Recalcular stats de todos os jogadores afetados
     const affectedPlayerIds = [...new Set(eventsToInsert.map(e => e.playerId).filter(Boolean))] as number[];
     for (const playerId of affectedPlayerIds) {
@@ -375,7 +416,7 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
             );
           }
 
-          // Push notifications
+          // Push notifications (golos e expulsões são enviados dentro de syncMatchStats)
           const ht = homeTeam.name;
           const at = awayTeam.name;
           const matchUrl = `/matches/${match.id}`;
@@ -383,9 +424,6 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
             sendNotification(`⚽ Jogo iniciado!`, `${ht} vs ${at} — O jogo começou!`, matchUrl).catch(() => {});
           } else if (newStatus === 'Finished' && prevStatus !== 'Finished') {
             sendNotification(`🏁 Jogo terminado`, `${ht} ${homeScore}–${awayScore} ${at}`, matchUrl).catch(() => {});
-          } else if (newStatus === 'Live' && (homeScore !== prevHome || awayScore !== prevAway)) {
-            const who = homeScore > prevHome ? ht : at;
-            sendNotification(`⚽ Golo! ${ht} ${homeScore}–${awayScore} ${at}`, `${who} marca!`, matchUrl).catch(() => {});
           }
 
           updated++;
