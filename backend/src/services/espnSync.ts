@@ -368,6 +368,50 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
         .where(eq(players.id, playerId));
     }
 
+    // Guardar cache ESPN na BD para servir sem ir à ESPN de novo
+    const rawData = data as any;
+    const cacheRosters: any[] = rawData.rosters || [];
+    const cacheBoxscore: any[] = rawData.boxscore?.teams || [];
+
+    const cachedLineups = cacheRosters.map((r: any) => ({
+      homeAway: r.homeAway,
+      formation: r.formation,
+      starters: (r.roster || [])
+        .filter((p: any) => p.starter)
+        .sort((a: any, b: any) => Number(a.formationPlace) - Number(b.formationPlace))
+        .map((p: any) => ({
+          name: p.athlete?.displayName,
+          jersey: p.jersey,
+          position: p.position?.abbreviation,
+          formationPlace: Number(p.formationPlace),
+          subbedOut: p.subbedOut,
+          stats: Object.fromEntries((p.stats || []).map((s: any) => [s.name, s.displayValue])),
+        })),
+      bench: (r.roster || [])
+        .filter((p: any) => !p.starter && p.active)
+        .map((p: any) => ({
+          name: p.athlete?.displayName,
+          jersey: p.jersey,
+          position: p.position?.abbreviation,
+          subbedIn: p.subbedIn,
+        })),
+    }));
+
+    const cachedTeamStats = cacheBoxscore.map((t: any) => ({
+      teamId: t.team?.id,
+      teamName: t.team?.displayName,
+      stats: Object.fromEntries((t.statistics || []).map((s: any) => [s.name, s.displayValue])),
+    }));
+
+    await db.update(matches).set({
+      espnCacheJson: JSON.stringify({
+        homeTeam: { id: match.homeTeamId, name: match.homeTeam?.name, flagUrl: match.homeTeam?.flagUrl },
+        awayTeam: { id: match.awayTeamId, name: match.awayTeam?.name, flagUrl: match.awayTeam?.flagUrl },
+        lineups: cachedLineups,
+        teamStats: cachedTeamStats,
+      }),
+    }).where(eq(matches.id, matchId));
+
     return { events: eventsToInsert.length };
   } catch (err: any) {
     return { events: 0, error: err.message };

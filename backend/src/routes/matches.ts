@@ -176,7 +176,7 @@ router.delete('/:id/events/:eventId', async (req, res) => {
   res.json({ success: true });
 });
 
-// GET /api/matches/:id/espn — dados ao vivo da ESPN (formações + stats)
+// GET /api/matches/:id/espn — formações + stats (BD cache primeiro, ESPN só se Live e sem cache)
 router.get('/:id/espn', async (req, res) => {
   const match = await db.query.matches.findFirst({
     where: eq(matches.id, Number(req.params.id)),
@@ -185,19 +185,28 @@ router.get('/:id/espn', async (req, res) => {
   if (!match) return res.status(404).json({ error: 'Jogo não encontrado' });
   if (!match.espnEventId) return res.status(404).json({ error: 'Sem ID ESPN — faz sync de resultados primeiro' });
 
+  // Servir da BD se temos cache (sempre para jogos terminados, fallback para Live)
+  if (match.espnCacheJson && match.status !== 'Live') {
+    return res.json(JSON.parse(match.espnCacheJson));
+  }
+
+  // Para jogos Live (ou sem cache ainda), ir à ESPN e guardar
   try {
     const espnRes = await fetch(
       `https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World/summary?event=${match.espnEventId}`,
       { signal: AbortSignal.timeout(10000) }
     );
-    if (!espnRes.ok) return res.status(502).json({ error: `ESPN HTTP ${espnRes.status}` });
+    if (!espnRes.ok) {
+      // Fallback para cache se ESPN falhar
+      if (match.espnCacheJson) return res.json(JSON.parse(match.espnCacheJson));
+      return res.status(502).json({ error: `ESPN HTTP ${espnRes.status}` });
+    }
 
     const data = await espnRes.json() as any;
     const rosters: any[] = data.rosters || [];
     const boxscoreTeams: any[] = data.boxscore?.teams || [];
 
-    // Formações e titulares
-    const lineups = rosters.map((r: any) => ({
+    const lineupData = rosters.map((r: any) => ({
       homeAway: r.homeAway as 'home' | 'away',
       formation: r.formation as string,
       starters: (r.roster || [])
@@ -221,20 +230,25 @@ router.get('/:id/espn', async (req, res) => {
         })),
     }));
 
-    // Estatísticas de equipa
     const teamStats = boxscoreTeams.map((t: any) => ({
       teamId: t.team?.id as string,
       teamName: t.team?.displayName as string,
       stats: Object.fromEntries((t.statistics || []).map((s: any) => [s.name, s.displayValue])),
     }));
 
-    res.json({
+    const payload = {
       homeTeam: { id: match.homeTeamId, name: match.homeTeam?.name, flagUrl: match.homeTeam?.flagUrl },
       awayTeam: { id: match.awayTeamId, name: match.awayTeam?.name, flagUrl: match.awayTeam?.flagUrl },
-      lineups,
+      lineups: lineupData,
       teamStats,
-    });
+    };
+
+    // Guardar na BD para próximas visitas
+    await db.update(matches).set({ espnCacheJson: JSON.stringify(payload) }).where(eq(matches.id, match.id));
+
+    res.json(payload);
   } catch (err: any) {
+    if (match.espnCacheJson) return res.json(JSON.parse(match.espnCacheJson));
     res.status(502).json({ error: err.message });
   }
 });
