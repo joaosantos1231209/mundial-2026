@@ -11,6 +11,7 @@ import Stats from './pages/Stats';
 import Admin from './pages/Admin';
 import WhatIf from './pages/WhatIf';
 import PlayerDetail from './pages/PlayerDetail';
+import News from './pages/News';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="teams/:id" element={<TeamDetail />} />
           <Route path="players/:id" element={<PlayerDetail />} />
           <Route path="stats" element={<Stats />} />
+          <Route path="news" element={<News />} />
           <Route path="what-if" element={<WhatIf />} />
           <Route path="admin" element={<Admin />} />
           <Route path="*" element={

@@ -88,6 +88,17 @@ export interface LineupPlayer {
   player?: Player;
 }
 
+export interface NewsArticle {
+  id: number;
+  espnId: string;
+  headline: string;
+  description: string;
+  imageUrl: string;
+  link: string;
+  publishedAt: string;
+  notified: number;
+}
+
 export interface ScraperLog {
   id: number;
   runAt: string;

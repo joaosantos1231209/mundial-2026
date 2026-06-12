@@ -10,8 +10,10 @@ import lineupsRouter from './routes/lineups';
 import simulateRouter from './routes/simulate';
 import healthRouter from './routes/health';
 import pushRouter from './routes/push';
+import newsRouter from './routes/news';
 import { sendNotification } from './services/pushService';
 import { syncLiveScores, syncUpcomingIds, syncKnockoutTeams } from './services/espnSync';
+import { syncNews } from './services/newsSync';
 import db from './db/index';
 import { matches } from './db/schema';
 
@@ -41,6 +43,7 @@ app.use('/api/lineups', lineupsRouter);
 app.use('/api/simulate', simulateRouter);
 app.use('/api/health', healthRouter);
 app.use('/api/push', pushRouter);
+app.use('/api/news', newsRouter);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', app: 'Mundial 2026 API' }));
 
@@ -52,7 +55,17 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 API Mundial 2026 a correr em http://localhost:${PORT}`);
   startAutoSync();
+  startNewsSync();
 });
+
+async function startNewsSync() {
+  async function tick() {
+    try { await syncNews(); } catch (err) { console.error('[NewsSync] Erro:', err); }
+    setTimeout(tick, 15 * 60_000);
+  }
+  setTimeout(tick, 30_000); // primeira execução 30s após arranque
+  console.log('📰 Auto-sync de notícias activo');
+}
 
 async function startAutoSync() {
   let timer: ReturnType<typeof setTimeout>;

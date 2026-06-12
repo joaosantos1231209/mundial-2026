@@ -82,6 +82,17 @@ export const pushSubscriptions = pgTable('push_subscriptions', {
   createdAt: text('created_at').notNull().default(''),
 });
 
+export const news = pgTable('news', {
+  id: serial('id').primaryKey(),
+  espnId: text('espn_id').notNull().unique(),
+  headline: text('headline').notNull(),
+  description: text('description').notNull().default(''),
+  imageUrl: text('image_url').notNull().default(''),
+  link: text('link').notNull().default(''),
+  publishedAt: text('published_at').notNull(),
+  notified: integer('notified').notNull().default(0),
+});
+
 export const scraperLogs = pgTable('scraper_logs', {
   id: serial('id').primaryKey(),
   runAt: text('run_at').notNull(),

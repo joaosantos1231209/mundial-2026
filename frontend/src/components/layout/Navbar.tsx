@@ -8,6 +8,7 @@ const links = [
   { to: '/matches', label: 'Jogos', icon: '⚽' },
   { to: '/teams', label: 'Equipas', icon: '🌍' },
   { to: '/stats', label: 'Estatísticas', icon: '📈' },
+  { to: '/news', label: 'Notícias', icon: '📰' },
   { to: '/what-if', label: 'What-If', icon: '⚡' },
   { to: '/admin', label: 'Admin', icon: '⚙️' },
 ];

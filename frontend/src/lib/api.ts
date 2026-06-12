@@ -77,6 +77,9 @@ export const seedGroupStage = (force = false) => request<{ success: boolean; cre
 export const seedRoundOf32 = () => request<{ success: boolean; created: number; message: string }>('/matches/seed-round-of-32', { method: 'POST' });
 export const seedKnockoutStages = () => request<{ success: boolean; created: number; message: string }>('/matches/seed-knockout-stages', { method: 'POST' });
 
+// News
+export const getNews = () => request<import('../types').NewsArticle[]>('/news');
+
 // Push notifications
 export const getVapidPublicKey = () => request<{ publicKey: string }>('/push/vapid-public-key');
 export const subscribePush = (sub: { endpoint: string; p256dh: string; auth: string }) =>
