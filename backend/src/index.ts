@@ -61,9 +61,9 @@ app.listen(Number(PORT), '0.0.0.0', () => {
 async function startNewsSync() {
   async function tick() {
     try { await syncNews(); } catch (err) { console.error('[NewsSync] Erro:', err); }
-    setTimeout(tick, 15 * 60_000);
+    setTimeout(tick, 15 * 60_000); // já estava correto — sempre re-agenda
   }
-  setTimeout(tick, 30_000); // primeira execução 30s após arranque
+  setTimeout(tick, 30_000);
   console.log('📰 Auto-sync de notícias activo');
 }
 
@@ -73,67 +73,73 @@ async function startAutoSync() {
   const notifiedGames = new Set<number>(); // IDs de jogos cujo "10 min" já foi enviado
 
   async function tick() {
-    const now = new Date();
-    const nowMs = now.getTime();
+    try {
+      const now = new Date();
+      const nowMs = now.getTime();
 
-    const allMatches = await db.select({ id: matches.id, status: matches.status, date: matches.date })
-      .from(matches)
-      .where(or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')));
+      const allMatches = await db.select({ id: matches.id, status: matches.status, date: matches.date })
+        .from(matches)
+        .where(or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')));
 
-    const hasLive = allMatches.some(m => m.status === 'Live');
-    const soonMatches = allMatches.filter(m => {
-      const diff = new Date(m.date).getTime() - nowMs;
-      return m.status === 'Scheduled' && diff >= 0 && diff <= 15 * 60 * 1000;
-    });
-    const hasSoon = soonMatches.length > 0;
+      const hasLive = allMatches.some(m => m.status === 'Live');
+      const soonMatches = allMatches.filter(m => {
+        const diff = new Date(m.date).getTime() - nowMs;
+        return m.status === 'Scheduled' && diff >= 0 && diff <= 30 * 60 * 1000;
+      });
+      const hasSoon = soonMatches.length > 0;
 
-    // Jogos que começaram enquanto o servidor estava inativo (até 4h no passado)
-    const hasMissed = allMatches.some(m => {
-      if (m.status !== 'Scheduled') return false;
-      const diff = new Date(m.date).getTime() - nowMs;
-      return diff < 0 && diff > -4 * 60 * 60 * 1000;
-    });
+      // Jogos que começaram enquanto o servidor estava inativo (até 4h no passado)
+      const hasMissed = allMatches.some(m => {
+        if (m.status !== 'Scheduled') return false;
+        const diff = new Date(m.date).getTime() - nowMs;
+        return diff < 0 && diff > -4 * 60 * 60 * 1000;
+      });
 
-    // Notificação "10 minutos" — uma vez por jogo (deduplicada)
-    for (const m of soonMatches) {
-      const diff = new Date(m.date).getTime() - nowMs;
-      if (diff >= 8 * 60 * 1000 && diff <= 12 * 60 * 1000 && !notifiedGames.has(m.id)) {
-        notifiedGames.add(m.id);
-        sendNotification('⏰ Jogo em 10 minutos!', `${m.date.substring(11, 16)} — A começar em breve`, '/matches').catch(() => {});
+      // Notificação "10 minutos" — uma vez por jogo (deduplicada)
+      for (const m of soonMatches) {
+        const diff = new Date(m.date).getTime() - nowMs;
+        if (diff >= 8 * 60 * 1000 && diff <= 12 * 60 * 1000 && !notifiedGames.has(m.id)) {
+          notifiedGames.add(m.id);
+          sendNotification('⏰ Jogo em 10 minutos!', `${m.date.substring(11, 16)} — A começar em breve`, '/matches').catch(() => {});
+        }
       }
+
+      // Sync de resultados: quando há atividade ou jogos perdidos
+      if (hasLive || hasSoon || hasMissed) {
+        try {
+          const result = await syncLiveScores();
+          if (result.updated > 0) console.log(`[AutoSync] ${result.updated} jogo(s) actualizados`);
+        } catch (err) {
+          console.error('[AutoSync] Erro scores:', err);
+        }
+      }
+
+      // ESPN ID sync + knockout team propagation — every 15 minutes
+      if (nowMs - lastIdSync >= 15 * 60_000) {
+        try {
+          const idResult = await syncUpcomingIds();
+          if (idResult.filled > 0) console.log(`[AutoSync] ${idResult.filled} ESPN ID(s) preenchidos`);
+          if (idResult.errors.length > 0) console.warn('[AutoSync] ID sync erros:', idResult.errors);
+        } catch (err) {
+          console.error('[AutoSync] Erro IDs:', err);
+        }
+        try {
+          const koResult = await syncKnockoutTeams();
+          if (koResult.updated > 0) console.log(`[AutoSync] ${koResult.updated} jogo(s) de knockout preenchidos`);
+          if (koResult.errors.length > 0) console.warn('[AutoSync] Knockout sync erros:', koResult.errors);
+        } catch (err) {
+          console.error('[AutoSync] Erro knockout teams:', err);
+        }
+        lastIdSync = nowMs;
+      }
+
+      const interval = (hasLive || hasSoon || hasMissed) ? 30_000 : 5 * 60_000;
+      timer = setTimeout(tick, interval);
+    } catch (err) {
+      // Garante que o daemon nunca morre — re-agenda mesmo em caso de erro inesperado (ex: BD timeout)
+      console.error('[AutoSync] Erro inesperado no tick, a re-agendar em 60s:', err);
+      timer = setTimeout(tick, 60_000);
     }
-
-    // Sync de resultados: quando há atividade ou jogos perdidos
-    if (hasLive || hasSoon || hasMissed) {
-      try {
-        const result = await syncLiveScores();
-        if (result.updated > 0) console.log(`[AutoSync] ${result.updated} jogo(s) actualizados`);
-      } catch (err) {
-        console.error('[AutoSync] Erro scores:', err);
-      }
-    }
-
-    // ESPN ID sync + knockout team propagation — every 15 minutes
-    if (nowMs - lastIdSync >= 15 * 60_000) {
-      try {
-        const idResult = await syncUpcomingIds();
-        if (idResult.filled > 0) console.log(`[AutoSync] ${idResult.filled} ESPN ID(s) preenchidos`);
-        if (idResult.errors.length > 0) console.warn('[AutoSync] ID sync erros:', idResult.errors);
-      } catch (err) {
-        console.error('[AutoSync] Erro IDs:', err);
-      }
-      try {
-        const koResult = await syncKnockoutTeams();
-        if (koResult.updated > 0) console.log(`[AutoSync] ${koResult.updated} jogo(s) de knockout preenchidos`);
-        if (koResult.errors.length > 0) console.warn('[AutoSync] Knockout sync erros:', koResult.errors);
-      } catch (err) {
-        console.error('[AutoSync] Erro knockout teams:', err);
-      }
-      lastIdSync = nowMs;
-    }
-
-    const interval = (hasLive || hasSoon || hasMissed) ? 30_000 : 5 * 60_000;
-    timer = setTimeout(tick, interval);
   }
 
   // Primeira execução 10 segundos após arranque

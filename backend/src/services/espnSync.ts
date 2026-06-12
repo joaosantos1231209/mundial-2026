@@ -409,6 +409,20 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
 
     const allTeams = await db.select().from(teams);
     const byEspnId = Object.fromEntries(allTeams.filter(t => t.espnId).map(t => [String(t.espnId), t]));
+    const byName = new Map(allTeams.map(t => [normalizeName(t.name), t]));
+
+    async function resolveTeam(espnTeamId: string, displayName: string) {
+      if (byEspnId[espnTeamId]) return byEspnId[espnTeamId];
+      const match = byName.get(normalizeName(displayName))
+        ?? [...byName.entries()].find(([k]) => k.includes(normalizeName(displayName)) || normalizeName(displayName).includes(k))?.[1];
+      if (match && !match.espnId) {
+        await db.update(teams).set({ espnId: espnTeamId }).where(eq(teams.id, match.id));
+        match.espnId = espnTeamId;
+        byEspnId[espnTeamId] = match;
+        console.log(`[ScoreSync] ESPN ID ${espnTeamId} → ${match.name}`);
+      }
+      return match;
+    }
 
     for (const event of allEvents) {
       try {
@@ -417,9 +431,12 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
         const awayComp = comp.competitors.find(c => c.homeAway === 'away');
         if (!homeComp || !awayComp) continue;
 
-        const homeTeam = byEspnId[homeComp.team.id];
-        const awayTeam = byEspnId[awayComp.team.id];
-        if (!homeTeam || !awayTeam) continue;
+        const homeTeam = await resolveTeam(homeComp.team.id, homeComp.team.displayName);
+        const awayTeam = await resolveTeam(awayComp.team.id, awayComp.team.displayName);
+        if (!homeTeam || !awayTeam) {
+          console.warn(`[ScoreSync] Equipas não encontradas: ${homeComp.team.displayName} vs ${awayComp.team.displayName}`);
+          continue;
+        }
 
         const newStatus = mapStatus(comp.status.type.name);
         const homeScore = parseInt(homeComp.score) || 0;
