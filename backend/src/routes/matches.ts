@@ -243,10 +243,9 @@ router.get('/:id/espn', async (req, res) => {
       teamStats,
     };
 
-    // Guardar na BD para próximas visitas
-    await db.update(matches).set({ espnCacheJson: JSON.stringify(payload) }).where(eq(matches.id, match.id));
-
+    // Responder primeiro, guardar cache em background
     res.json(payload);
+    db.update(matches).set({ espnCacheJson: JSON.stringify(payload) }).where(eq(matches.id, match.id)).catch(() => {});
   } catch (err: any) {
     if (match.espnCacheJson) return res.json(JSON.parse(match.espnCacheJson));
     res.status(502).json({ error: err.message });
