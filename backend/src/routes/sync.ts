@@ -49,7 +49,8 @@ router.post('/stats/:matchId', async (req, res) => {
     match = (await db.query.matches.findFirst({ where: eq(matches.id, matchId) })) ?? match;
   }
 
-  const result = await syncMatchStats(matchId, match.espnEventId);
+  const espnId = match.espnEventId!;
+  const result = await syncMatchStats(matchId, espnId);
   res.json({ success: !result.error, events: result.events, error: result.error, matchStatus: match.status });
 });
 
