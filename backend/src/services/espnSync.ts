@@ -1,6 +1,6 @@
 import { eq, and, or, sql, isNull, isNotNull } from 'drizzle-orm';
 import db from '../db/index';
-import { teams, players, matches, matchEvents, scraperLogs } from '../db/schema';
+import { teams, players, matches, matchEvents, lineups, scraperLogs } from '../db/schema';
 import { sendNotification } from './pushService';
 
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer/FIFA.World';
@@ -292,6 +292,31 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
       await db.insert(matchEvents).values(eventsToInsert);
     }
 
+    // Gravar onzes iniciais e suplentes na tabela lineups
+    const lineupsToInsert: Array<{
+      matchId: number; teamId: number; playerId: number;
+      posX: number; posY: number; isStarter: number;
+    }> = [];
+    for (const roster of rosters) {
+      for (const rp of roster.roster || []) {
+        if (!rp.active) continue;
+        const player = findPlayerByName(rp.athlete.displayName, playerMap);
+        if (!player) continue;
+        lineupsToInsert.push({
+          matchId,
+          teamId: player.teamId,
+          playerId: player.id,
+          posX: 50,
+          posY: 50,
+          isStarter: rp.starter ? 1 : 0,
+        });
+      }
+    }
+    if (lineupsToInsert.length > 0) {
+      await db.delete(lineups).where(eq(lineups.matchId, matchId));
+      await db.insert(lineups).values(lineupsToInsert);
+    }
+
     // Notificações de novos golos e expulsões
     const matchUrl = `/matches/${matchId}`;
     const homeCode = match.homeTeam?.code ?? '?';
@@ -355,24 +380,37 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
   const errors: string[] = [];
 
   try {
-    const res = await fetch(`${ESPN_BASE}/scoreboard`, { signal: AbortSignal.timeout(10000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    // Buscar hoje + ontem: jogos às 3h Portugal (UTC+1) aparecem no dia anterior em US Eastern na ESPN
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10).replace(/-/g, '');
+    const [res1, res2] = await Promise.all([
+      fetch(`${ESPN_BASE}/scoreboard`, { signal: AbortSignal.timeout(10000) }),
+      fetch(`${ESPN_BASE}/scoreboard?dates=${yesterday}`, { signal: AbortSignal.timeout(10000) }),
+    ]);
+    if (!res1.ok && !res2.ok) throw new Error(`HTTP ${res1.status}`);
 
-    const data = await res.json() as {
-      events?: Array<{
-        id: string;
-        date: string;
-        competitions: Array<{
-          status: { type: { name: string; displayName: string } };
-          competitors: Array<{ homeAway: string; score: string; team: { id: string; displayName: string } }>;
-        }>;
+    type ESPNEvent = {
+      id: string;
+      date: string;
+      competitions: Array<{
+        status: { type: { name: string; displayName: string } };
+        competitors: Array<{ homeAway: string; score: string; team: { id: string; displayName: string } }>;
       }>;
     };
+
+    const seenIds = new Set<string>();
+    const allEvents: ESPNEvent[] = [];
+    for (const res of [res1, res2]) {
+      if (!res.ok) continue;
+      const data = await res.json() as { events?: ESPNEvent[] };
+      for (const event of data.events || []) {
+        if (!seenIds.has(event.id)) { seenIds.add(event.id); allEvents.push(event); }
+      }
+    }
 
     const allTeams = await db.select().from(teams);
     const byEspnId = Object.fromEntries(allTeams.filter(t => t.espnId).map(t => [String(t.espnId), t]));
 
-    for (const event of data.events || []) {
+    for (const event of allEvents) {
       try {
         const comp = event.competitions[0];
         const homeComp = comp.competitors.find(c => c.homeAway === 'home');

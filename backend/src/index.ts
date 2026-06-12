@@ -57,12 +57,13 @@ app.listen(Number(PORT), '0.0.0.0', () => {
 async function startAutoSync() {
   let timer: ReturnType<typeof setTimeout>;
   let lastIdSync = 0;
+  const notifiedGames = new Set<number>(); // IDs de jogos cujo "10 min" já foi enviado
 
   async function tick() {
     const now = new Date();
     const nowMs = now.getTime();
 
-    const allMatches = await db.select({ status: matches.status, date: matches.date })
+    const allMatches = await db.select({ id: matches.id, status: matches.status, date: matches.date })
       .from(matches)
       .where(or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')));
 
@@ -73,16 +74,24 @@ async function startAutoSync() {
     });
     const hasSoon = soonMatches.length > 0;
 
-    // Send "starting soon" push for matches 10 min away (only once, when window 8–12 min)
+    // Jogos que começaram enquanto o servidor estava inativo (até 4h no passado)
+    const hasMissed = allMatches.some(m => {
+      if (m.status !== 'Scheduled') return false;
+      const diff = new Date(m.date).getTime() - nowMs;
+      return diff < 0 && diff > -4 * 60 * 60 * 1000;
+    });
+
+    // Notificação "10 minutos" — uma vez por jogo (deduplicada)
     for (const m of soonMatches) {
       const diff = new Date(m.date).getTime() - nowMs;
-      if (diff >= 8 * 60 * 1000 && diff <= 12 * 60 * 1000) {
+      if (diff >= 8 * 60 * 1000 && diff <= 12 * 60 * 1000 && !notifiedGames.has(m.id)) {
+        notifiedGames.add(m.id);
         sendNotification('⏰ Jogo em 10 minutos!', `${m.date.substring(11, 16)} — A começar em breve`, '/matches').catch(() => {});
       }
     }
 
-    // Live scores sync (only when there's activity)
-    if (hasLive || hasSoon) {
+    // Sync de resultados: quando há atividade ou jogos perdidos
+    if (hasLive || hasSoon || hasMissed) {
       try {
         const result = await syncLiveScores();
         if (result.updated > 0) console.log(`[AutoSync] ${result.updated} jogo(s) actualizados`);
@@ -110,7 +119,7 @@ async function startAutoSync() {
       lastIdSync = nowMs;
     }
 
-    const interval = (hasLive || hasSoon) ? 30_000 : 5 * 60_000;
+    const interval = (hasLive || hasSoon || hasMissed) ? 30_000 : 5 * 60_000;
     timer = setTimeout(tick, interval);
   }
 
