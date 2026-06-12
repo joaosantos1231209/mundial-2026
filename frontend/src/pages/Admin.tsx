@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ScraperHealthMonitor from '../components/ScraperHealthMonitor';
-import { downloadBackup, generateKnockout, seedGroupStage, seedRoundOf32, seedKnockoutStages } from '../lib/api';
+import { downloadBackup, generateKnockout, seedGroupStage, seedRoundOf32, seedKnockoutStages, syncSquads as apiSyncSquads, syncScores as apiSyncScores } from '../lib/api';
 
 interface SyncState {
   loading: boolean;
@@ -11,11 +11,6 @@ interface SyncState {
 
 const initial: SyncState = { loading: false, result: null, error: null, log: [] };
 
-async function apiPost(path: string) {
-  const res = await fetch(path, { method: 'POST' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
-}
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? 'admin';
 const SESSION_KEY = 'mundial_admin_auth';
@@ -79,7 +74,7 @@ export default function Admin() {
   const syncSquads = async () => {
     setSquadsState({ loading: true, result: null, error: null, log: ['A iniciar sincronização de plantéis...'] });
     try {
-      const data = await apiPost('/api/sync/squads');
+      const data = await apiSyncSquads();
       setSquadsState({
         loading: false,
         result: `✅ ${data.synced} jogadores sincronizados de 48 equipas`,
@@ -94,7 +89,7 @@ export default function Admin() {
   const syncScores = async () => {
     setScoresState({ loading: true, result: null, error: null, log: ['A sincronizar resultados...'] });
     try {
-      const data = await apiPost('/api/sync/scores');
+      const data = await apiSyncScores();
       setScoresState({
         loading: false,
         result: `✅ ${data.updated} jogos atualizados`,

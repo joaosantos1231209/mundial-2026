@@ -39,12 +39,18 @@ router.post('/scores', async (_req, res) => {
 // POST /api/sync/stats/:matchId — força sync de estatísticas de um jogo
 router.post('/stats/:matchId', async (req, res) => {
   const matchId = parseInt(req.params.matchId);
-  const match = await db.query.matches.findFirst({ where: eq(matches.id, matchId) });
+  let match = await db.query.matches.findFirst({ where: eq(matches.id, matchId) });
   if (!match) return res.status(404).json({ success: false, error: 'Jogo não encontrado' });
   if (!match.espnEventId) return res.status(400).json({ success: false, error: 'Jogo sem ID ESPN — faz sync de resultados primeiro' });
 
+  // Se ainda está Scheduled, forçar sync de resultados para atualizar status e marcador
+  if (match.status === 'Scheduled') {
+    await syncLiveScores().catch(() => {});
+    match = (await db.query.matches.findFirst({ where: eq(matches.id, matchId) })) ?? match;
+  }
+
   const result = await syncMatchStats(matchId, match.espnEventId);
-  res.json({ success: !result.error, events: result.events, error: result.error });
+  res.json({ success: !result.error, events: result.events, error: result.error, matchStatus: match.status });
 });
 
 export default router;

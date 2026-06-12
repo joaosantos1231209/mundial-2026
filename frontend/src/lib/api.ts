@@ -69,6 +69,7 @@ export const getScraperLogs = () => request<ScraperLog[]>('/health/logs');
 export const downloadBackup = () => window.open(`${BASE}/health/backup`, '_blank');
 
 // Sync
+export const syncSquads = () => request<{ synced: number; errors: string[]; log: string[] }>('/sync/squads', { method: 'POST' });
 export const syncScores = () => request<{ updated: number; errors: string[] }>('/sync/scores', { method: 'POST' });
 export const syncMatchStats = (matchId: number) => request<{ events: number; error?: string }>(`/sync/stats/${matchId}`, { method: 'POST' });
 export const generateKnockout = () => request<{ success: boolean; created: number; message: string }>('/matches/generate-knockout', { method: 'POST' });
