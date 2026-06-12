@@ -416,8 +416,9 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
       const match = byName.get(normalizeName(displayName))
         ?? [...byName.entries()].find(([k]) => k.includes(normalizeName(displayName)) || normalizeName(displayName).includes(k))?.[1];
       if (match && !match.espnId) {
-        await db.update(teams).set({ espnId: espnTeamId }).where(eq(teams.id, match.id));
-        match.espnId = espnTeamId;
+        const espnIdNum = parseInt(espnTeamId);
+        await db.update(teams).set({ espnId: espnIdNum }).where(eq(teams.id, match.id));
+        match.espnId = espnIdNum;
         byEspnId[espnTeamId] = match;
         console.log(`[ScoreSync] ESPN ID ${espnTeamId} → ${match.name}`);
       }
