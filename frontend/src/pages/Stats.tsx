@@ -19,7 +19,7 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: 'efficiency', label: 'Eficiência', icon: '📈' },
 ];
 
-type SortKey = 'avgGoalsPerGame' | 'totalYellow' | 'goalsAgainst';
+type SortKey = 'goalsFor' | 'goalsAgainst' | 'totalYellow' | 'totalRed';
 
 export default function Stats() {
   const [tab, setTab] = useState<TabId>('leaderboards');
@@ -32,7 +32,7 @@ export default function Stats() {
   const [radarData1, setRadarData1] = useState<any>(null);
   const [radarData2, setRadarData2] = useState<any>(null);
   const [efficiency, setEfficiency] = useState<EfficiencyTeam[]>([]);
-  const [sortKey, setSortKey] = useState<SortKey>('avgGoalsPerGame');
+  const [sortKey, setSortKey] = useState<SortKey>('goalsFor');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,9 +53,10 @@ export default function Stats() {
   };
 
   const sortedEfficiency = [...efficiency].sort((a, b) => {
-    if (sortKey === 'avgGoalsPerGame') return b.avgGoalsPerGame - a.avgGoalsPerGame;
-    if (sortKey === 'totalYellow') return b.totalYellow - a.totalYellow;
+    if (sortKey === 'goalsFor') return b.goalsFor - a.goalsFor;
     if (sortKey === 'goalsAgainst') return a.goalsAgainst - b.goalsAgainst;
+    if (sortKey === 'totalYellow') return b.totalYellow - a.totalYellow;
+    if (sortKey === 'totalRed') return b.totalRed - a.totalRed;
     return 0;
   });
 
@@ -208,23 +209,6 @@ export default function Stats() {
         <div className="bg-wc-navy border border-wc-blue rounded-xl overflow-hidden">
           <div className="px-5 py-4 bg-wc-blue/30 border-b border-wc-blue flex items-center justify-between flex-wrap gap-2">
             <h2 className="text-white font-bold">Ranking de Eficiência</h2>
-            <div className="flex gap-1 flex-wrap">
-              {([
-                { key: 'avgGoalsPerGame', label: 'Golos/Jogo' },
-                { key: 'goalsAgainst', label: 'Defesa' },
-                { key: 'totalYellow', label: 'Disciplina' },
-              ] as const).map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setSortKey(key)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                    sortKey === key ? 'bg-wc-gold text-wc-dark' : 'bg-wc-blue text-white/50 hover:text-white'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
 
           {efficiency.length === 0 ? (
@@ -239,10 +223,10 @@ export default function Stats() {
                     <th className="text-left px-4 py-3 text-white/40 font-medium">#</th>
                     <th className="text-left px-4 py-3 text-white/40 font-medium">Equipa</th>
                     <th className="text-right px-4 py-3 text-white/40 font-medium">JG</th>
-                    <th className={`text-right px-4 py-3 font-medium ${sortKey === 'avgGoalsPerGame' ? 'text-wc-gold' : 'text-white/40'}`}>GM/J</th>
-                    <th className={`text-right px-4 py-3 font-medium ${sortKey === 'goalsAgainst' ? 'text-wc-gold' : 'text-white/40'}`}>GS</th>
-                    <th className={`text-right px-4 py-3 font-medium ${sortKey === 'totalYellow' ? 'text-wc-gold' : 'text-white/40'}`}>🟨</th>
-                    <th className="text-right px-4 py-3 text-white/40 font-medium">🟥</th>
+                    <th onClick={() => setSortKey('goalsFor')} className={`text-right px-4 py-3 font-medium cursor-pointer select-none hover:text-white ${sortKey === 'goalsFor' ? 'text-wc-gold' : 'text-white/40'}`}>GM</th>
+                    <th onClick={() => setSortKey('goalsAgainst')} className={`text-right px-4 py-3 font-medium cursor-pointer select-none hover:text-white ${sortKey === 'goalsAgainst' ? 'text-wc-gold' : 'text-white/40'}`}>GS</th>
+                    <th onClick={() => setSortKey('totalYellow')} className={`text-right px-4 py-3 font-medium cursor-pointer select-none hover:text-white ${sortKey === 'totalYellow' ? 'text-yellow-400' : 'text-white/40'}`}>🟨</th>
+                    <th onClick={() => setSortKey('totalRed')} className={`text-right px-4 py-3 font-medium cursor-pointer select-none hover:text-white ${sortKey === 'totalRed' ? 'text-red-400' : 'text-white/40'}`}>🟥</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-wc-blue/10">
@@ -257,10 +241,10 @@ export default function Stats() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right text-white/50">{t.gamesPlayed}</td>
-                      <td className={`px-4 py-3 text-right font-bold ${sortKey === 'avgGoalsPerGame' ? 'text-wc-gold' : 'text-white/70'}`}>{t.avgGoalsPerGame}</td>
+                      <td className={`px-4 py-3 text-right font-bold ${sortKey === 'goalsFor' ? 'text-wc-gold' : 'text-white/70'}`}>{t.goalsFor}</td>
                       <td className={`px-4 py-3 text-right font-bold ${sortKey === 'goalsAgainst' ? 'text-wc-gold' : 'text-white/70'}`}>{t.goalsAgainst}</td>
                       <td className={`px-4 py-3 text-right ${sortKey === 'totalYellow' ? 'text-yellow-400 font-bold' : 'text-white/50'}`}>{t.totalYellow}</td>
-                      <td className="px-4 py-3 text-right text-white/50">{t.totalRed}</td>
+                      <td className={`px-4 py-3 text-right ${sortKey === 'totalRed' ? 'text-red-400 font-bold' : 'text-white/50'}`}>{t.totalRed}</td>
                     </tr>
                   ))}
                 </tbody>
