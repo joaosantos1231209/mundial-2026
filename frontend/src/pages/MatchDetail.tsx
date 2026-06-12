@@ -122,6 +122,16 @@ export default function MatchDetail() {
     }
   }, [match?.espnEventId, match?.status]);
 
+  // Auto-refresh quando o jogo está Live: recarrega dados a cada 30s
+  useEffect(() => {
+    if (match?.status !== 'Live') return;
+    const interval = setInterval(() => {
+      loadMatch();
+      loadEspn();
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [match?.status]);
+
   const handleSyncESPN = async () => {
     if (!match) return;
     setSyncing(true);
