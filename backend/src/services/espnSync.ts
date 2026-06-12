@@ -14,9 +14,14 @@ function mapPosition(abbr: string): string {
   return 'MID';
 }
 
-function mapStatus(espnStatus: string): string {
+function mapStatus(espnStatus: string, state?: string): string {
+  // ESPN state é a fonte mais fiável: 'pre' | 'in' | 'post'
+  if (state === 'post') return 'Finished';
+  if (state === 'in') return 'Live';
+  if (state === 'pre') return 'Scheduled';
+  // Fallback por nome (futebol usa FIRST_HALF/SECOND_HALF, não IN_PROGRESS)
   if (espnStatus === 'STATUS_FINAL' || espnStatus === 'STATUS_FULL_TIME') return 'Finished';
-  if (espnStatus === 'STATUS_IN_PROGRESS' || espnStatus === 'STATUS_HALFTIME') return 'Live';
+  if (['STATUS_IN_PROGRESS', 'STATUS_HALFTIME', 'STATUS_FIRST_HALF', 'STATUS_SECOND_HALF', 'STATUS_EXTRA_TIME', 'STATUS_SHOOTOUT', 'STATUS_END_OF_REGULATION'].includes(espnStatus)) return 'Live';
   return 'Scheduled';
 }
 
@@ -436,7 +441,7 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
       id: string;
       date: string;
       competitions: Array<{
-        status: { type: { name: string; displayName: string } };
+        status: { type: { name: string; displayName: string; state?: string } };
         competitors: Array<{ homeAway: string; score: string; team: { id: string; displayName: string } }>;
       }>;
     };
@@ -483,7 +488,7 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
           continue;
         }
 
-        const newStatus = mapStatus(comp.status.type.name);
+        let newStatus = mapStatus(comp.status.type.name, comp.status.type.state);
         const homeScore = parseInt(homeComp.score) || 0;
         const awayScore = parseInt(awayComp.score) || 0;
 
@@ -493,6 +498,8 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
 
         if (match) {
           const prevStatus = match.status;
+          // Nunca reverter um jogo Live/Finished para Scheduled (glitch da ESPN)
+          if (newStatus === 'Scheduled' && prevStatus !== 'Scheduled') newStatus = prevStatus;
           const prevHome = match.homeScore ?? 0;
           const prevAway = match.awayScore ?? 0;
           const updateData: Partial<typeof matches.$inferInsert> = {
