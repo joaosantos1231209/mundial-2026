@@ -122,14 +122,15 @@ export default function MatchDetail() {
     }
   }, [match?.espnEventId, match?.status]);
 
-  // Auto-refresh quando o jogo está Live: recarrega dados a cada 30s
+  // Auto-refresh: 30s quando Live, 60s quando Scheduled (para detectar início do jogo)
   useEffect(() => {
-    if (match?.status !== 'Live') return;
-    const interval = setInterval(() => {
+    if (!match || match.status === 'Finished') return;
+    const ms = match.status === 'Live' ? 30_000 : 60_000;
+    const timer = setInterval(() => {
       loadMatch();
-      loadEspn();
-    }, 30_000);
-    return () => clearInterval(interval);
+      if (match.status === 'Live') loadEspn();
+    }, ms);
+    return () => clearInterval(timer);
   }, [match?.status]);
 
   const handleSyncESPN = async () => {
