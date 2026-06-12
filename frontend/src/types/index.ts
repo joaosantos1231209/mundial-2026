@@ -46,6 +46,7 @@ export interface Match {
   homeScore: number | null;
   awayScore: number | null;
   status: 'Scheduled' | 'Live' | 'Finished';
+  statusDetail?: string | null;
   date: string;
   venue: string;
   motmPlayerId: number | null;
@@ -61,7 +62,7 @@ export interface MatchEvent {
   matchId: number;
   playerId: number | null;
   teamId: number | null;
-  eventType: 'Goal' | 'OwnGoal' | 'Assist' | 'Yellow' | 'Red';
+  eventType: 'Goal' | 'OwnGoal' | 'Assist' | 'Yellow' | 'Red' | 'Sub';
   minute: number | null;
   description: string;
   player?: Player;

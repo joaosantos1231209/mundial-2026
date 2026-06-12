@@ -53,6 +53,7 @@ export const matches = pgTable('matches', {
   motmPlayerId: integer('motm_player_id').references(() => players.id),
   espnEventId: text('espn_event_id'),
   espnCacheJson: text('espn_cache_json'),
+  statusDetail: text('status_detail'),
 });
 
 export const matchEvents = pgTable('match_events', {

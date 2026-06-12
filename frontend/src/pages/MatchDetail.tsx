@@ -8,7 +8,7 @@ type Tab = 'dados' | 'formacoes' | 'stats';
 const EVENT_ICONS: Record<string, string> = {
   goal: '⚽', own_goal: '🔴', assist: '🎯',
   yellow_card: '🟨', red_card: '🟥',
-  Goal: '⚽', OwnGoal: '🔴', Assist: '🎯', Yellow: '🟨', Red: '🟥',
+  Goal: '⚽', OwnGoal: '🔴', Assist: '🎯', Yellow: '🟨', Red: '🟥', Sub: '🔄',
 };
 
 const STAT_LABELS: Record<string, string> = {
@@ -237,7 +237,7 @@ export default function MatchDetail() {
               'bg-blue-500/20 text-blue-300'
             }`}>
               {match.status === 'Finished' ? 'Terminado' :
-               match.status === 'Live' ? '⚡ AO VIVO' :
+               match.status === 'Live' ? `⚡ AO VIVO${match.statusDetail ? ` · ${match.statusDetail}` : ''}` :
                match.date.includes('T')
                  ? `${match.date.split('T')[0].split('-').reverse().join('/')} · ${match.date.split('T')[1].substring(0,5)}`
                  : match.date}
@@ -317,7 +317,9 @@ export default function MatchDetail() {
                       <span className="text-xl">{EVENT_ICONS[ev.eventType] || '•'}</span>
                       <span className="text-white/40 text-sm w-12 font-mono">{ev.minute ? `${ev.minute}'` : '—'}</span>
                       <div className="flex-1">
-                        <span className="text-white font-medium">{ev.player?.name ?? ev.description ?? '—'}</span>
+                        <span className="text-white font-medium">
+                          {ev.eventType === 'Sub' ? ev.description : (ev.player?.name ?? ev.description ?? '—')}
+                        </span>
                         {ev.team && <span className="text-white/40 text-xs ml-2">({ev.team.name})</span>}
                       </div>
                     </div>

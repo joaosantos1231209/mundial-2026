@@ -14,6 +14,21 @@ function mapPosition(abbr: string): string {
   return 'MID';
 }
 
+function mapStatusDetail(espnStatus: string): string | null {
+  const map: Record<string, string> = {
+    STATUS_FIRST_HALF: '1ª Parte',
+    STATUS_HALFTIME: 'Intervalo',
+    STATUS_SECOND_HALF: '2ª Parte',
+    STATUS_END_OF_REGULATION: 'Fim do tempo regulamentar',
+    STATUS_EXTRA_TIME: 'Prolongamento',
+    STATUS_HALFTIME_ET: 'Intervalo (Prolongamento)',
+    STATUS_END_OF_EXTRATIME: 'Fim do prolongamento',
+    STATUS_SHOOTOUT: 'Penáltis',
+    STATUS_IN_PROGRESS: 'A decorrer',
+  };
+  return map[espnStatus] ?? null;
+}
+
 function mapStatus(espnStatus: string, state?: string): string {
   // ESPN state é a fonte mais fiável: 'pre' | 'in' | 'post'
   if (state === 'post') return 'Finished';
@@ -263,6 +278,23 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
       const minute = sub.clock?.value ? Math.round(sub.clock.value / 60) : FULL_MATCH;
       if (inPlayer) substitutedIn.set(normalizeName(inPlayer.athlete.displayName), minute);
       if (outPlayer) substitutedOut.set(normalizeName(outPlayer.athlete.displayName), minute);
+
+      // Gravar substituição como evento do jogo
+      if (inPlayer || outPlayer) {
+        const inDb = inPlayer ? findPlayerByName(inPlayer.athlete.displayName, playerMap) : undefined;
+        const outDb = outPlayer ? findPlayerByName(outPlayer.athlete.displayName, playerMap) : undefined;
+        const subTeamId = sub.team?.id ? (espnToOurTeam.get(sub.team.id) || null) : null;
+        const inName = inPlayer?.athlete.displayName ?? '?';
+        const outName = outPlayer?.athlete.displayName ?? '?';
+        eventsToInsert.push({
+          matchId,
+          playerId: inDb?.id ?? outDb?.id ?? null,
+          teamId: inDb?.teamId ?? outDb?.teamId ?? subTeamId,
+          eventType: 'Sub',
+          minute,
+          description: `Entra ${inName}, sai ${outName}`,
+        });
+      }
     }
 
     for (const roster of rosters) {
@@ -505,6 +537,7 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
           const updateData: Partial<typeof matches.$inferInsert> = {
             status: newStatus,
             espnEventId: event.id,
+            statusDetail: newStatus === 'Live' ? mapStatusDetail(comp.status.type.name) : null,
           };
           if (newStatus === 'Finished' || newStatus === 'Live') {
             updateData.homeScore = homeScore;

@@ -97,7 +97,7 @@ export default function MatchCard({ match, compact, showDate }: Props) {
                 {STAGE_LABELS[stage] ?? stage}
               </span>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusColors[status]}`}>
-                {statusLabels[status]}
+                {isLive && match.statusDetail ? `AO VIVO · ${match.statusDetail}` : statusLabels[status]}
               </span>
             </div>
 
