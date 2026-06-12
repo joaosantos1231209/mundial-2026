@@ -122,7 +122,6 @@ useEffect(() => {
                       {p.minutesPlayed > 0 && <span>⏱ {p.minutesPlayed}'</span>}
                       {p.yellowCards > 0 && <span>🟨 {p.yellowCards}</span>}
                       {p.redCards > 0 && <span>🟥 {p.redCards}</span>}
-                      {p.cleanSheets > 0 && <span>🧤 {p.cleanSheets}</span>}
                     </div>
                   </div>
                 ))}

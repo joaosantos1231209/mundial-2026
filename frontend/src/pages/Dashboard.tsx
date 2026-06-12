@@ -139,10 +139,9 @@ export default function Dashboard() {
             <h2 className="text-xl font-bold text-white">Estatísticas</h2>
             <Link to="/stats" className="text-wc-gold text-sm hover:underline">Ver completo →</Link>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2">
             <StatCard title="Melhores Marcadores" icon="⚽" players={stats.topScorers} statKey="goals" statLabel="golos" limit={5} />
             <StatCard title="Melhores Assistentes" icon="🎯" players={stats.topAssists} statKey="assists" statLabel="assistências" limit={5} />
-            <StatCard title="Mais Jogos a Zero" icon="🧤" players={stats.cleanSheets} statKey="cleanSheets" statLabel="clean sheets" limit={5} />
           </div>
         </section>
       )}

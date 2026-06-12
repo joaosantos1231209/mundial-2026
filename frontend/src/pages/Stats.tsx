@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import StatCard from '../components/ui/StatCard';
 import {
-  getTopScorers, getTopAssists, getCleanSheets,
+  getTopScorers, getTopAssists,
   getGoalsByMinute, getTeamRadar, getTeams, getEfficiencyStats,
 } from '../lib/api';
 import type { Player, Team, EfficiencyTeam } from '../types';
@@ -19,13 +19,12 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: 'efficiency', label: 'Eficiência', icon: '📈' },
 ];
 
-type SortKey = 'conversion' | 'cleanSheets' | 'avgGoalsPerGame' | 'totalYellow' | 'goalsAgainst';
+type SortKey = 'avgGoalsPerGame' | 'totalYellow' | 'goalsAgainst';
 
 export default function Stats() {
   const [tab, setTab] = useState<TabId>('leaderboards');
   const [scorers, setScorers] = useState<Player[]>([]);
   const [assists, setAssists] = useState<Player[]>([]);
-  const [cleanSheets, setCleanSheets] = useState<Player[]>([]);
   const [goalsByMin, setGoalsByMin] = useState<Array<{ period: string; goals: number }>>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [radarTeam1, setRadarTeam1] = useState('');
@@ -33,15 +32,15 @@ export default function Stats() {
   const [radarData1, setRadarData1] = useState<any>(null);
   const [radarData2, setRadarData2] = useState<any>(null);
   const [efficiency, setEfficiency] = useState<EfficiencyTeam[]>([]);
-  const [sortKey, setSortKey] = useState<SortKey>('conversion');
+  const [sortKey, setSortKey] = useState<SortKey>('avgGoalsPerGame');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      getTopScorers(50), getTopAssists(50), getCleanSheets(50),
+      getTopScorers(50), getTopAssists(50),
       getGoalsByMinute(), getTeams(), getEfficiencyStats(),
-    ]).then(([s, a, c, gm, t, eff]) => {
-      setScorers(s); setAssists(a); setCleanSheets(c);
+    ]).then(([s, a, gm, t, eff]) => {
+      setScorers(s); setAssists(a);
       setGoalsByMin(gm); setTeams(t); setEfficiency(eff);
     }).finally(() => setLoading(false));
   }, []);
@@ -54,8 +53,6 @@ export default function Stats() {
   };
 
   const sortedEfficiency = [...efficiency].sort((a, b) => {
-    if (sortKey === 'conversion') return b.conversion - a.conversion;
-    if (sortKey === 'cleanSheets') return b.cleanSheets - a.cleanSheets;
     if (sortKey === 'avgGoalsPerGame') return b.avgGoalsPerGame - a.avgGoalsPerGame;
     if (sortKey === 'totalYellow') return b.totalYellow - a.totalYellow;
     if (sortKey === 'goalsAgainst') return a.goalsAgainst - b.goalsAgainst;
@@ -81,11 +78,10 @@ export default function Stats() {
       </div>
 
       {/* Awards Banner */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {[
           { icon: '🥾', label: 'Chuteira de Ouro', value: scorers[0]?.name || '—', sub: scorers[0] ? `${scorers[0].goals} golos` : 'Sem dados', flag: scorers[0]?.team?.flagUrl },
           { icon: '🎯', label: 'Assistente de Ouro', value: assists[0]?.name || '—', sub: assists[0] ? `${assists[0].assists} assist.` : 'Sem dados', flag: assists[0]?.team?.flagUrl },
-          { icon: '🧤', label: 'Luva de Ouro', value: cleanSheets[0]?.name || '—', sub: cleanSheets[0] ? `${cleanSheets[0].cleanSheets} clean sheets` : 'Sem dados', flag: cleanSheets[0]?.team?.flagUrl },
         ].map(award => (
           <div key={award.label} className="bg-wc-navy border border-wc-gold/20 rounded-xl p-5 text-center">
             <div className="text-4xl mb-2">{award.icon}</div>
@@ -118,9 +114,8 @@ export default function Stats() {
         <div className="grid gap-6 lg:grid-cols-3">
           <StatCard title="Melhores Marcadores" icon="⚽" players={scorers} statKey="goals" statLabel="golos" limit={20} />
           <StatCard title="Melhores Assistentes" icon="🎯" players={assists} statKey="assists" statLabel="assistências" limit={20} />
-          <StatCard title="Mais Jogos a Zero" icon="🧤" players={cleanSheets} statKey="cleanSheets" statLabel="clean sheets" limit={20} />
           {scorers.length === 0 && assists.length === 0 && (
-            <div className="col-span-3 text-center py-12 text-white/30">
+            <div className="col-span-2 text-center py-12 text-white/30">
               <div className="text-5xl mb-4">📊</div>
               <p>Ainda sem estatísticas — adiciona eventos nos jogos</p>
             </div>
@@ -215,8 +210,6 @@ export default function Stats() {
             <h2 className="text-white font-bold">Ranking de Eficiência</h2>
             <div className="flex gap-1 flex-wrap">
               {([
-                { key: 'conversion', label: 'Conversão' },
-                { key: 'cleanSheets', label: 'Clean Sheets' },
                 { key: 'avgGoalsPerGame', label: 'Golos/Jogo' },
                 { key: 'goalsAgainst', label: 'Defesa' },
                 { key: 'totalYellow', label: 'Disciplina' },
@@ -246,8 +239,6 @@ export default function Stats() {
                     <th className="text-left px-4 py-3 text-white/40 font-medium">#</th>
                     <th className="text-left px-4 py-3 text-white/40 font-medium">Equipa</th>
                     <th className="text-right px-4 py-3 text-white/40 font-medium">JG</th>
-                    <th className={`text-right px-4 py-3 font-medium ${sortKey === 'conversion' ? 'text-wc-gold' : 'text-white/40'}`}>Conv. %</th>
-                    <th className={`text-right px-4 py-3 font-medium ${sortKey === 'cleanSheets' ? 'text-wc-gold' : 'text-white/40'}`}>CS</th>
                     <th className={`text-right px-4 py-3 font-medium ${sortKey === 'avgGoalsPerGame' ? 'text-wc-gold' : 'text-white/40'}`}>GM/J</th>
                     <th className={`text-right px-4 py-3 font-medium ${sortKey === 'goalsAgainst' ? 'text-wc-gold' : 'text-white/40'}`}>GS</th>
                     <th className={`text-right px-4 py-3 font-medium ${sortKey === 'totalYellow' ? 'text-wc-gold' : 'text-white/40'}`}>🟨</th>
@@ -266,8 +257,6 @@ export default function Stats() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right text-white/50">{t.gamesPlayed}</td>
-                      <td className={`px-4 py-3 text-right font-bold ${sortKey === 'conversion' ? 'text-wc-gold' : 'text-white/70'}`}>{t.conversion}%</td>
-                      <td className={`px-4 py-3 text-right font-bold ${sortKey === 'cleanSheets' ? 'text-wc-gold' : 'text-white/70'}`}>{t.cleanSheets}</td>
                       <td className={`px-4 py-3 text-right font-bold ${sortKey === 'avgGoalsPerGame' ? 'text-wc-gold' : 'text-white/70'}`}>{t.avgGoalsPerGame}</td>
                       <td className={`px-4 py-3 text-right font-bold ${sortKey === 'goalsAgainst' ? 'text-wc-gold' : 'text-white/70'}`}>{t.goalsAgainst}</td>
                       <td className={`px-4 py-3 text-right ${sortKey === 'totalYellow' ? 'text-yellow-400 font-bold' : 'text-white/50'}`}>{t.totalYellow}</td>

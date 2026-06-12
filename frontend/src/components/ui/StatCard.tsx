@@ -4,7 +4,7 @@ interface Props {
   title: string;
   icon: string;
   players: Player[];
-  statKey: 'goals' | 'assists' | 'cleanSheets';
+  statKey: 'goals' | 'assists';
   statLabel: string;
   limit?: number;
 }

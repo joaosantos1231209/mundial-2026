@@ -40,8 +40,8 @@ router.post('/', async (req, res) => {
 // PATCH /api/players/:id
 router.patch('/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const { name, position, shirtNumber, goals, assists, yellowCards, redCards, cleanSheets,
-    minutesPlayed, shots, shotsOnTarget, fouls,
+  const { name, position, shirtNumber, goals, assists, yellowCards, redCards,
+    minutesPlayed, fouls,
     isCaptain, isViceCaptain, isCornerKicker, isFreekickTaker, isPenaltyTaker } = req.body;
   const updateData: Partial<typeof players.$inferInsert> = {};
   if (name !== undefined) updateData.name = name;
@@ -51,10 +51,7 @@ router.patch('/:id', async (req, res) => {
   if (assists !== undefined) updateData.assists = Number(assists);
   if (yellowCards !== undefined) updateData.yellowCards = Number(yellowCards);
   if (redCards !== undefined) updateData.redCards = Number(redCards);
-  if (cleanSheets !== undefined) updateData.cleanSheets = Number(cleanSheets);
   if (minutesPlayed !== undefined) updateData.minutesPlayed = Number(minutesPlayed);
-  if (shots !== undefined) updateData.shots = Number(shots);
-  if (shotsOnTarget !== undefined) updateData.shotsOnTarget = Number(shotsOnTarget);
   if (fouls !== undefined) updateData.fouls = Number(fouls);
   if (isCaptain !== undefined) updateData.isCaptain = isCaptain ? 1 : 0;
   if (isViceCaptain !== undefined) updateData.isViceCaptain = isViceCaptain ? 1 : 0;

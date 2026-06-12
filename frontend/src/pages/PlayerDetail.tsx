@@ -51,8 +51,6 @@ export default function PlayerDetail() {
   const gamesPlayed = history.length;
   const totalGoals = history.reduce((s, h) => s + h.goals, 0);
   const totalAssists = history.reduce((s, h) => s + h.assists, 0);
-  const shotConversion = player.shots > 0 ? Math.round((player.goals / player.shots) * 100) : 0;
-
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {player.team && (
@@ -105,13 +103,6 @@ export default function PlayerDetail() {
         <StatBox label="Assistências" value={totalAssists} color="text-blue-300" />
         <StatBox label="Minutos" value={player.minutesPlayed} />
       </div>
-      <div className="grid grid-cols-4 gap-3">
-        <StatBox label="Remates" value={player.shots} />
-        <StatBox label="Alvo" value={player.shotsOnTarget} />
-        <StatBox label="Conversão" value={`${shotConversion}%`} color={shotConversion > 30 ? 'text-green-400' : 'text-white'} />
-        <StatBox label="Clean Sheets" value={player.cleanSheets} color="text-yellow-300" />
-      </div>
-
       {/* Cards */}
       {(player.yellowCards > 0 || player.redCards > 0) && (
         <div className="flex gap-3">

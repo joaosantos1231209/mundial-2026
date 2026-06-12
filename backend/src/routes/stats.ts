@@ -25,17 +25,6 @@ router.get('/top-assists', async (req, res) => {
   res.json(result.filter(p => p.assists > 0).slice(0, limit));
 });
 
-// GET /api/stats/clean-sheets
-router.get('/clean-sheets', async (req, res) => {
-  const limit = Number(req.query.limit) || 20;
-  const result = await db.query.players.findMany({
-    where: eq(players.position, 'GK'),
-    with: { team: true },
-    orderBy: [desc(players.cleanSheets)],
-  });
-  res.json(result.filter(p => p.cleanSheets > 0).slice(0, limit));
-});
-
 // GET /api/stats/groups — all group standings
 router.get('/groups', async (req, res) => {
   const allTeams = await db.select().from(teams).orderBy(asc(teams.group), desc(teams.points), desc(teams.goalsFor));
@@ -56,15 +45,9 @@ router.get('/overview', async (_req, res) => {
     with: { team: true },
     orderBy: [desc(players.assists), desc(players.goals)],
   });
-  const cleanSheets = await db.query.players.findMany({
-    where: eq(players.position, 'GK'),
-    with: { team: true },
-    orderBy: [desc(players.cleanSheets)],
-  });
   res.json({
     topScorers: topScorers.filter(p => p.goals > 0).slice(0, 5),
     topAssists: topAssists.filter(p => p.assists > 0).slice(0, 5),
-    cleanSheets: cleanSheets.filter(p => p.cleanSheets > 0).slice(0, 5),
   });
 });
 
@@ -111,9 +94,6 @@ router.get('/radar/:teamId', async (req, res) => {
   const playerGoals = await db.query.players.findMany({
     where: eq(players.teamId, teamId),
   });
-  const totalShots = playerGoals.reduce((s, p) => s + p.shots, 0);
-  const totalShotsOnTarget = playerGoals.reduce((s, p) => s + p.shotsOnTarget, 0);
-
   for (const m of myMatches) {
     const isHome = m.homeTeamId === teamId;
     goalsScored += isHome ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
@@ -129,13 +109,8 @@ router.get('/radar/:teamId', async (req, res) => {
     metrics: [
       { subject: 'Ataque', value: Math.min(100, Math.round((goalsScored / gamesPlayed) * 25)) },
       { subject: 'Defesa', value: Math.min(100, Math.round(Math.max(0, (3 - goalsConceded / gamesPlayed)) * 33)) },
-      { subject: 'Eficiência', value: totalShots > 0 ? Math.round((totalShotsOnTarget / totalShots) * 100) : 50 },
       { subject: 'Disciplina', value: Math.min(100, Math.max(0, 100 - (yellowCards * 5 + redCards * 15))) },
       { subject: 'Golos/Jogo', value: Math.min(100, Math.round((goalsScored / gamesPlayed) * 33)) },
-      { subject: 'Clean Sheets', value: Math.min(100, Math.round((myMatches.filter(m => {
-        const isHome = m.homeTeamId === teamId;
-        return isHome ? (m.awayScore ?? 1) === 0 : (m.homeScore ?? 1) === 0;
-      }).length / gamesPlayed) * 100)) },
     ],
   });
 });
@@ -148,27 +123,16 @@ router.get('/efficiency', async (_req, res) => {
 
   const result = allTeams.map(team => {
     const teamPlayers = allPlayers.filter(p => p.teamId === team.id);
-    const totalShots = teamPlayers.reduce((s, p) => s + p.shots, 0);
-    const totalShotsOnTarget = teamPlayers.reduce((s, p) => s + p.shotsOnTarget, 0);
     const totalYellow = teamPlayers.reduce((s, p) => s + p.yellowCards, 0);
     const totalRed = teamPlayers.reduce((s, p) => s + p.redCards, 0);
     const totalFouls = teamPlayers.reduce((s, p) => s + p.fouls, 0);
 
     const teamMatches = finishedMatches.filter(m => m.homeTeamId === team.id || m.awayTeamId === team.id);
-    const cleanSheets = teamMatches.filter(m => {
-      const isHome = m.homeTeamId === team.id;
-      return isHome ? (m.awayScore ?? 1) === 0 : (m.homeScore ?? 1) === 0;
-    }).length;
-
-    const conversion = totalShots > 0 ? Math.round((team.goalsFor / totalShots) * 100 * 10) / 10 : 0;
 
     return {
       id: team.id, name: team.name, code: team.code, flagUrl: team.flagUrl, group: team.group,
       goalsFor: team.goalsFor, goalsAgainst: team.goalsAgainst,
       gamesPlayed: teamMatches.length,
-      cleanSheets,
-      totalShots, totalShotsOnTarget,
-      conversion,
       totalYellow, totalRed, totalFouls,
       avgGoalsPerGame: teamMatches.length > 0 ? Math.round((team.goalsFor / teamMatches.length) * 10) / 10 : 0,
     };

@@ -25,10 +25,7 @@ export interface Player {
   assists: number;
   yellowCards: number;
   redCards: number;
-  cleanSheets: number;
   minutesPlayed: number;
-  shots: number;
-  shotsOnTarget: number;
   fouls: number;
   isCaptain: number;
   isViceCaptain: number;
@@ -78,7 +75,6 @@ export interface GroupStandings {
 export interface StatsOverview {
   topScorers: Player[];
   topAssists: Player[];
-  cleanSheets: Player[];
 }
 
 export interface LineupPlayer {
@@ -139,10 +135,6 @@ export interface EfficiencyTeam {
   goalsFor: number;
   goalsAgainst: number;
   gamesPlayed: number;
-  cleanSheets: number;
-  totalShots: number;
-  totalShotsOnTarget: number;
-  conversion: number;
   totalYellow: number;
   totalRed: number;
   totalFouls: number;
