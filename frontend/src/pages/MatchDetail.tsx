@@ -254,13 +254,13 @@ export default function MatchDetail() {
           <div className="text-white/40 text-xs mt-0.5">
             {match.status === 'Live' ? 'Atualiza resultado e marcadores em tempo real' :
              match.status === 'Finished' ? 'Importa golos, assistências, cartões e minutos jogados' :
-             'Disponível quando o jogo começar'}
+             'Força sync — atualiza estado do jogo a partir da ESPN'}
           </div>
           {syncMsg && <div className="text-sm mt-2 font-medium text-wc-gold">{syncMsg}</div>}
         </div>
         <button
           onClick={handleSyncESPN}
-          disabled={syncing || match.status === 'Scheduled'}
+          disabled={syncing}
           className="shrink-0 px-4 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ background: syncing ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg, #7C3AED, #A855F7)', color: 'white' }}
         >
