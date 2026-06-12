@@ -11,14 +11,20 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hours / 24)}d atrás`;
 }
 
+const PAGE_SIZE = 15;
+
 export default function News() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     getNews().then(setArticles).finally(() => setLoading(false));
   }, []);
+
+  const totalPages = Math.ceil(articles.length / PAGE_SIZE);
+  const pageArticles = articles.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (loading) return (
     <div className="flex justify-center py-20 text-wc-gold animate-pulse text-xl">A carregar notícias...</div>
@@ -38,7 +44,7 @@ export default function News() {
         </div>
       ) : (
         <div className="space-y-3">
-          {articles.map(article => (
+          {pageArticles.map(article => (
             <div
               key={article.id}
               className="bg-wc-navy border border-wc-blue rounded-xl overflow-hidden"
@@ -89,6 +95,43 @@ export default function News() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <button
+            onClick={() => { setPage(p => p - 1); setExpanded(null); }}
+            disabled={page === 1}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-wc-navy border border-wc-blue text-white/60 hover:text-white hover:border-wc-gold/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            ← Anterior
+          </button>
+
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <button
+                key={p}
+                onClick={() => { setPage(p); setExpanded(null); }}
+                className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${
+                  p === page
+                    ? 'text-wc-dark font-bold'
+                    : 'text-white/50 hover:text-white hover:bg-white/6'
+                }`}
+                style={p === page ? { background: 'linear-gradient(135deg, #F59E0B, #FCD34D)' } : {}}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => { setPage(p => p + 1); setExpanded(null); }}
+            disabled={page === totalPages}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-wc-navy border border-wc-blue text-white/60 hover:text-white hover:border-wc-gold/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            Seguinte →
+          </button>
         </div>
       )}
     </div>
