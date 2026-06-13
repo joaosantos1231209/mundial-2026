@@ -81,13 +81,17 @@ async function startAutoSync() {
         .from(matches)
         .where(or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')));
 
+      // Datas na BD estão em hora de Lisboa (UTC+1 no verão) sem timezone explícito.
+      // O servidor Railway corre em UTC, por isso corrigimos +1h ao fazer o parse.
+      function matchDateMs(dateStr: string): number {
+        const hasTimezone = dateStr.includes('Z') || dateStr.includes('+') || /[0-9]-[0-9]{2}:[0-9]{2}$/.test(dateStr);
+        return new Date(hasTimezone ? dateStr : dateStr + '+01:00').getTime();
+      }
+
       // Notificação "10 minutos" — uma vez por jogo (deduplicada)
-      const soonMatches = allMatches.filter(m => {
-        const diff = new Date(m.date).getTime() - nowMs;
-        return m.status === 'Scheduled' && diff >= 0 && diff <= 30 * 60 * 1000;
-      });
-      for (const m of soonMatches) {
-        const diff = new Date(m.date).getTime() - nowMs;
+      for (const m of allMatches) {
+        if (m.status !== 'Scheduled') continue;
+        const diff = matchDateMs(m.date) - nowMs;
         if (diff >= 8 * 60 * 1000 && diff <= 12 * 60 * 1000 && !notifiedGames.has(m.id)) {
           notifiedGames.add(m.id);
           sendNotification('⏰ Jogo em 10 minutos!', `${m.date.substring(11, 16)} — A começar em breve`, '/matches').catch(() => {});
