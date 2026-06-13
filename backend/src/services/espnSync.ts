@@ -1,4 +1,4 @@
-import { eq, and, or, sql, isNull, isNotNull } from 'drizzle-orm';
+import { eq, and, or, isNull, isNotNull } from 'drizzle-orm';
 import db from '../db/index';
 import { teams, players, matches, matchEvents, lineups, scraperLogs } from '../db/schema';
 import { sendNotification } from './pushService';
@@ -211,10 +211,14 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
       const minute = minuteRaw ? Math.round(minuteRaw / 60) : null;
       const teamId = event.team?.id ? (espnToOurTeam.get(event.team.id) || null) : null;
 
-      if (type.startsWith('goal')) {
+      const isGoal = type.startsWith('goal') || type === 'penalty-goal' || type === 'penalty' || type.includes('penalty-goal');
+      const isPenalty = type === 'penalty-goal' || type === 'penalty' || type.includes('penalty');
+
+      if (isGoal) {
         const isOwnGoal = type.includes('own-goal');
         const scorer = event.participants?.[0];
-        const assister = event.participants?.[1];
+        // Penáltis não têm assistência
+        const assister = (!isOwnGoal && !isPenalty) ? event.participants?.[1] : undefined;
 
         if (scorer) {
           const player = findPlayerByName(scorer.athlete.displayName, playerMap);
@@ -224,11 +228,13 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
             teamId: player?.teamId ?? teamId,
             eventType: isOwnGoal ? 'OwnGoal' : 'Goal',
             minute,
-            description: event.shortText || scorer.athlete.displayName,
+            description: isPenalty
+              ? `${event.shortText || scorer.athlete.displayName} (P)`
+              : (event.shortText || scorer.athlete.displayName),
           });
         }
 
-        if (assister && !isOwnGoal) {
+        if (assister) {
           const player = findPlayerByName(assister.athlete.displayName, playerMap);
           eventsToInsert.push({
             matchId,
@@ -532,8 +538,6 @@ export async function syncLiveScores(): Promise<{ updated: number; errors: strin
           const prevStatus = match.status;
           // Nunca reverter um jogo Live/Finished para Scheduled (glitch da ESPN)
           if (newStatus === 'Scheduled' && prevStatus !== 'Scheduled') newStatus = prevStatus;
-          const prevHome = match.homeScore ?? 0;
-          const prevAway = match.awayScore ?? 0;
           const updateData: Partial<typeof matches.$inferInsert> = {
             status: newStatus,
             espnEventId: event.id,

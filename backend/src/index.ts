@@ -81,21 +81,11 @@ async function startAutoSync() {
         .from(matches)
         .where(or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')));
 
-      const hasLive = allMatches.some(m => m.status === 'Live');
+      // Notificação "10 minutos" — uma vez por jogo (deduplicada)
       const soonMatches = allMatches.filter(m => {
         const diff = new Date(m.date).getTime() - nowMs;
         return m.status === 'Scheduled' && diff >= 0 && diff <= 30 * 60 * 1000;
       });
-      const hasSoon = soonMatches.length > 0;
-
-      // Jogos que começaram enquanto o servidor estava inativo (até 4h no passado)
-      const hasMissed = allMatches.some(m => {
-        if (m.status !== 'Scheduled') return false;
-        const diff = new Date(m.date).getTime() - nowMs;
-        return diff < 0 && diff > -4 * 60 * 60 * 1000;
-      });
-
-      // Notificação "10 minutos" — uma vez por jogo (deduplicada)
       for (const m of soonMatches) {
         const diff = new Date(m.date).getTime() - nowMs;
         if (diff >= 8 * 60 * 1000 && diff <= 12 * 60 * 1000 && !notifiedGames.has(m.id)) {
@@ -104,14 +94,12 @@ async function startAutoSync() {
         }
       }
 
-      // Sync de resultados: quando há atividade ou jogos perdidos
-      if (hasLive || hasSoon || hasMissed) {
-        try {
-          const result = await syncLiveScores();
-          if (result.updated > 0) console.log(`[AutoSync] ${result.updated} jogo(s) actualizados`);
-        } catch (err) {
-          console.error('[AutoSync] Erro scores:', err);
-        }
+      // Sync sempre a cada 30s — não depende de datas da BD nem de estado dos jogos
+      try {
+        const result = await syncLiveScores();
+        if (result.updated > 0) console.log(`[AutoSync] ${result.updated} jogo(s) actualizados`);
+      } catch (err) {
+        console.error('[AutoSync] Erro scores:', err);
       }
 
       // ESPN ID sync + knockout team propagation — every 15 minutes
@@ -133,8 +121,7 @@ async function startAutoSync() {
         lastIdSync = nowMs;
       }
 
-      const interval = (hasLive || hasSoon || hasMissed) ? 30_000 : 5 * 60_000;
-      timer = setTimeout(tick, interval);
+      timer = setTimeout(tick, 30_000);
     } catch (err) {
       // Garante que o daemon nunca morre — re-agenda mesmo em caso de erro inesperado (ex: BD timeout)
       console.error('[AutoSync] Erro inesperado no tick, a re-agendar em 60s:', err);
