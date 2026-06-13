@@ -211,13 +211,15 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
       const minute = minuteRaw ? Math.round(minuteRaw / 60) : null;
       const teamId = event.team?.id ? (espnToOurTeam.get(event.team.id) || null) : null;
 
-      const isGoal = type.startsWith('goal') || type === 'penalty-goal' || type === 'penalty' || type.includes('penalty-goal');
-      const isPenalty = type === 'penalty-goal' || type === 'penalty' || type.includes('penalty');
+      // scoringPlay é a forma mais fiável — cobre goal, goal---header, penalty---scored, etc.
+      const isGoal = event.scoringPlay === true || type.startsWith('goal') || type.includes('goal');
+      const isPenalty = type.includes('penalty');
+      const isOwnGoalType = type.includes('own-goal');
 
       if (isGoal) {
-        const isOwnGoal = type.includes('own-goal');
+        const isOwnGoal = isOwnGoalType;
         const scorer = event.participants?.[0];
-        // Penáltis não têm assistência
+        // Penáltis e golos próprios não têm assistência
         const assister = (!isOwnGoal && !isPenalty) ? event.participants?.[1] : undefined;
 
         if (scorer) {
