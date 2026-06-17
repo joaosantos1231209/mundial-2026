@@ -77,9 +77,11 @@ async function startAutoSync() {
       const now = new Date();
       const nowMs = now.getTime();
 
-      const allMatches = await db.select({ id: matches.id, status: matches.status, date: matches.date })
-        .from(matches)
-        .where(or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')));
+      const allMatches = await db.query.matches.findMany({
+        where: or(eq(matches.status, 'Live'), eq(matches.status, 'Scheduled')),
+        columns: { id: true, status: true, date: true, homeLabel: true, awayLabel: true },
+        with: { homeTeam: { columns: { name: true, code: true } }, awayTeam: { columns: { name: true, code: true } } },
+      });
 
       // Datas na BD estão em hora de Lisboa (UTC+1 no verão) sem timezone explícito.
       // O servidor Railway corre em UTC, por isso corrigimos +1h ao fazer o parse.
@@ -94,7 +96,9 @@ async function startAutoSync() {
         const diff = matchDateMs(m.date) - nowMs;
         if (diff >= 8 * 60 * 1000 && diff <= 12 * 60 * 1000 && !notifiedGames.has(m.id)) {
           notifiedGames.add(m.id);
-          sendNotification('⏰ Jogo em 10 minutos!', `${m.date.substring(11, 16)} — A começar em breve`, '/matches').catch(() => {});
+          const home = m.homeLabel ?? m.homeTeam?.name ?? '?';
+          const away = m.awayLabel ?? m.awayTeam?.name ?? '?';
+          sendNotification('⏰ Jogo em 10 minutos!', `${home} vs ${away} · ${m.date.substring(11, 16)}`, '/matches').catch(() => {});
         }
       }
 
