@@ -367,17 +367,36 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
     const homeCode = match.homeTeam?.code ?? '?';
     const awayCode = match.awayTeam?.code ?? '?';
 
-    const newGoals = eventsToInsert.filter(e => e.eventType === 'Goal' || e.eventType === 'OwnGoal');
-    if (newGoals.length > prevGoals) {
-      for (const goal of newGoals.slice(prevGoals)) {
-        const scorer = goal.playerId
-          ? teamPlayers.find(p => p.id === goal.playerId)
-          : null;
+    const allGoals = eventsToInsert.filter(e => e.eventType === 'Goal' || e.eventType === 'OwnGoal');
+    if (allGoals.length > prevGoals) {
+      for (let i = prevGoals; i < allGoals.length; i++) {
+        const goal = allGoals[i];
+        const scorer = goal.playerId ? teamPlayers.find(p => p.id === goal.playerId) : null;
         const scorerName = scorer?.name ?? (goal.teamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name) ?? '?';
         const isOG = goal.eventType === 'OwnGoal';
+
+        // Resultado acumulado até este golo
+        const goalsUpToNow = allGoals.slice(0, i + 1);
+        const hScore = goalsUpToNow.filter(g =>
+          (g.eventType === 'Goal' && g.teamId === match.homeTeamId) ||
+          (g.eventType === 'OwnGoal' && g.teamId === match.awayTeamId)
+        ).length;
+        const aScore = goalsUpToNow.filter(g =>
+          (g.eventType === 'Goal' && g.teamId === match.awayTeamId) ||
+          (g.eventType === 'OwnGoal' && g.teamId === match.homeTeamId)
+        ).length;
+
+        // Equipa que beneficia do golo
+        const scoringTeam = isOG
+          ? (goal.teamId === match.homeTeamId ? match.awayTeam?.name : match.homeTeam?.name)
+          : (goal.teamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name);
+
+        const minuteStr = goal.minute != null ? `${goal.minute}'` : '';
+        const suffix = isOG ? ' (golo próprio)' : '';
+
         sendNotification(
-          `⚽ Golo! ${homeCode} vs ${awayCode}`,
-          `${scorerName}${isOG ? ' (golo próprio)' : ' marca!'}`,
+          `⚽ Golo! ${homeCode} ${hScore}–${aScore} ${awayCode}`,
+          `${minuteStr ? minuteStr + ' · ' : ''}${scorerName}${suffix}${scoringTeam ? ` · ${scoringTeam}` : ''}`,
           matchUrl
         ).catch(() => {});
       }
@@ -386,13 +405,13 @@ export async function syncMatchStats(matchId: number, espnEventId: string): Prom
     const newReds = eventsToInsert.filter(e => e.eventType === 'Red');
     if (newReds.length > prevReds) {
       for (const red of newReds.slice(prevReds)) {
-        const expelled = red.playerId
-          ? teamPlayers.find(p => p.id === red.playerId)
-          : null;
+        const expelled = red.playerId ? teamPlayers.find(p => p.id === red.playerId) : null;
         const expelledName = expelled?.name ?? '?';
+        const expelledTeam = red.teamId === match.homeTeamId ? match.homeTeam?.name : match.awayTeam?.name;
+        const minuteStr = red.minute != null ? `${red.minute}'` : '';
         sendNotification(
           `🟥 Expulsão! ${homeCode} vs ${awayCode}`,
-          `${expelledName} viu o cartão vermelho`,
+          `${minuteStr ? minuteStr + ' · ' : ''}${expelledName}${expelledTeam ? ` (${expelledTeam})` : ''} viu o cartão vermelho`,
           matchUrl
         ).catch(() => {});
       }

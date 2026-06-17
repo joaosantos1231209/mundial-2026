@@ -25,6 +25,7 @@ export default function Stats() {
   const [tab, setTab] = useState<TabId>('leaderboards');
   const [scorers, setScorers] = useState<Player[]>([]);
   const [assists, setAssists] = useState<Player[]>([]);
+  const [combined, setCombined] = useState<Player[]>([]);
   const [goalsByMin, setGoalsByMin] = useState<Array<{ period: string; goals: number }>>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [radarTeam1, setRadarTeam1] = useState('');
@@ -42,6 +43,18 @@ export default function Stats() {
     ]).then(([s, a, gm, t, eff]) => {
       setScorers(s); setAssists(a);
       setGoalsByMin(gm); setTeams(t); setEfficiency(eff);
+
+      // Combinar golos + assistências por jogador
+      const map = new Map<number, Player & { goals: number }>();
+      for (const p of s) map.set(p.id, { ...p, goals: p.goals ?? 0 });
+      for (const p of a) {
+        if (map.has(p.id)) {
+          map.get(p.id)!.goals += p.assists ?? 0;
+        } else {
+          map.set(p.id, { ...p, goals: p.assists ?? 0 });
+        }
+      }
+      setCombined([...map.values()]);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -115,12 +128,7 @@ export default function Stats() {
         <div className="grid gap-6 lg:grid-cols-3">
           <StatCard title="Melhores Marcadores" icon="⚽" players={scorers} statKey="goals" statLabel="golos" limit={20} />
           <StatCard title="Melhores Assistentes" icon="🎯" players={assists} statKey="assists" statLabel="assistências" limit={20} />
-          {scorers.length === 0 && assists.length === 0 && (
-            <div className="col-span-2 text-center py-12 text-white/30">
-              <div className="text-5xl mb-4">📊</div>
-              <p>Ainda sem estatísticas — adiciona eventos nos jogos</p>
-            </div>
-          )}
+          <StatCard title="Golos + Assistências" icon="🌟" players={combined} statKey="goals" statLabel="G+A" limit={20} />
         </div>
       )}
 
