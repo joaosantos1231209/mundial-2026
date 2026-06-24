@@ -785,14 +785,30 @@ export async function syncKnockoutTeams(): Promise<{ updated: number; errors: st
 
         const homeTeam = byEspnId[homeComp.team.id];
         const awayTeam = byEspnId[awayComp.team.id];
-        if (!homeTeam || !awayTeam || homeTeam.code === 'TBD' || awayTeam.code === 'TBD') continue;
+
+        const isHomeValid = homeTeam && homeTeam.code !== 'TBD';
+        const isAwayValid = awayTeam && awayTeam.code !== 'TBD';
+
+        if (!isHomeValid && !isAwayValid) continue;
+
+        const updateData: any = {};
+        if (isHomeValid) {
+          updateData.homeTeamId = homeTeam.id;
+          updateData.homeLabel = null;
+        }
+        if (isAwayValid) {
+          updateData.awayTeamId = awayTeam.id;
+          updateData.awayLabel = null;
+        }
 
         await db.update(matches)
-          .set({ homeTeamId: homeTeam.id, awayTeamId: awayTeam.id, homeLabel: null, awayLabel: null })
+          .set(updateData)
           .where(eq(matches.id, match.id));
 
         updated++;
-        console.log(`[KnockoutSync] Jogo ${match.id}: ${homeTeam.code} vs ${awayTeam.code} preenchido`);
+        const hName = isHomeValid ? homeTeam.code : 'TBD';
+        const aName = isAwayValid ? awayTeam.code : 'TBD';
+        console.log(`[KnockoutSync] Jogo ${match.id}: ${hName} vs ${aName} atualizado`);
         await delay(200);
       } catch (e: any) {
         errors.push(`Event ${match.espnEventId}: ${e.message}`);
